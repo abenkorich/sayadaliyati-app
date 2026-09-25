@@ -1,0 +1,14 @@
+{
+  "expo": {
+    "name": "Saydaliyati",
+    "slug": "saydaliyati",
+    "version": "0.1.0",
+    "scheme": "saydaliyati",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "android": {
+      "package": "com.saydaliyati.app"
+    },
+    "plugins": ["expo-router", "expo-secure-store", "expo-status-bar"]
+  }
+}
