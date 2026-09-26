@@ -16,10 +16,12 @@ import { cropPixels, moveCorner, suggestedCrop, type Crop } from './crop';
 export type CropSource = { uri: string; width: number; height: number };
 export function PrescriptionCrop({
   source,
+  embedded = false,
   onCancel,
   onDone,
 }: {
   source: CropSource;
+  embedded?: boolean;
   onCancel(): void;
   onDone(image: { uri: string; mimeType: string }): void;
 }) {
@@ -108,7 +110,147 @@ export function PrescriptionCrop({
       if (mounted.current) setBusy(false);
     }
   }
-  return (
+  const content = (
+    <SafeAreaView style={s.screen}>
+      <ScrollView contentContainerStyle={s.content}>
+        <Text style={s.title}>{t('Select medicines only')}</Text>
+        <Text style={s.text}>
+          {t(
+            'The starting box is a suggested area, not automatic detection. Drag its corners or adjust the edges below. Exclude every name, address, ID, barcode and patient detail.',
+          )}
+        </Text>
+        <View style={{ alignItems: 'center', padding: 12 }}>
+          <View style={{ width, height }}>
+            <Image
+              source={{ uri: source.uri }}
+              style={{ width, height }}
+              resizeMode="contain"
+            />
+            <View
+              pointerEvents="none"
+              style={[
+                s.mask,
+                { left: 0, top: 0, width, height: crop.top * height },
+              ]}
+            />
+            <View
+              pointerEvents="none"
+              style={[
+                s.mask,
+                {
+                  left: 0,
+                  top: crop.bottom * height,
+                  width,
+                  height: (1 - crop.bottom) * height,
+                },
+              ]}
+            />
+            <View
+              pointerEvents="none"
+              style={[
+                s.mask,
+                {
+                  left: 0,
+                  top: crop.top * height,
+                  width: crop.left * width,
+                  height: (crop.bottom - crop.top) * height,
+                },
+              ]}
+            />
+            <View
+              pointerEvents="none"
+              style={[
+                s.mask,
+                {
+                  left: crop.right * width,
+                  top: crop.top * height,
+                  width: (1 - crop.right) * width,
+                  height: (crop.bottom - crop.top) * height,
+                },
+              ]}
+            />
+            <View
+              pointerEvents="none"
+              style={[
+                s.selection,
+                {
+                  left: crop.left * width,
+                  top: crop.top * height,
+                  width: (crop.right - crop.left) * width,
+                  height: (crop.bottom - crop.top) * height,
+                },
+              ]}
+            />
+            {handle('start')}
+            {handle('end')}
+          </View>
+        </View>
+        <Text style={s.text}>
+          {t(
+            'Only the selected area will appear in the next preview. Nothing is uploaded yet.',
+          )}
+        </Text>
+        {(['top', 'bottom', 'left', 'right'] as const).map((edge) => (
+          <View key={edge} style={s.row}>
+            <Text style={[s.text, { flex: 1, textTransform: 'capitalize' }]}>
+              {edge} {t('edge')}
+            </Text>
+            {[-1, 1].map((direction) => (
+              <Pressable
+                key={direction}
+                accessibilityRole="button"
+                accessibilityLabel={`Move ${edge} ${edge === 'top' || edge === 'bottom' ? (direction < 0 ? 'up' : 'down') : direction < 0 ? 'left' : 'right'}`}
+                disabled={busy}
+                style={s.smallButton}
+                onPress={() =>
+                  setCrop(
+                    moveCorner(
+                      crop,
+                      edge === 'top' || edge === 'left' ? 'start' : 'end',
+                      edge === 'left' || edge === 'right'
+                        ? direction * 0.02
+                        : 0,
+                      edge === 'top' || edge === 'bottom'
+                        ? direction * 0.02
+                        : 0,
+                    ),
+                  )
+                }
+              >
+                <Text>{direction < 0 ? '−' : '+'}</Text>
+              </Pressable>
+            ))}
+          </View>
+        ))}
+        {!!error && (
+          <Text accessibilityRole="alert" style={{ color: '#8C2926' }}>
+            {error}
+          </Text>
+        )}
+        <Pressable
+          accessibilityRole="button"
+          disabled={busy}
+          style={s.button}
+          onPress={() => void apply()}
+        >
+          <Text style={s.buttonText}>
+            {busy ? t('Creating crop…') : t('Continue with this crop')}
+          </Text>
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          disabled={busy}
+          style={s.smallButton}
+          onPress={onCancel}
+        >
+          <Text>{t('Cancel — keep image on device')}</Text>
+        </Pressable>
+      </ScrollView>
+    </SafeAreaView>
+  );
+  return embedded ? (
+    content
+  ) : (
     <Modal
       visible
       animationType="slide"
@@ -116,144 +258,7 @@ export function PrescriptionCrop({
         if (!busy) onCancel();
       }}
     >
-      <SafeAreaView style={s.screen}>
-        <ScrollView contentContainerStyle={s.content}>
-          <Text style={s.title}>{t('Select medicines only')}</Text>
-          <Text style={s.text}>
-            {t(
-              'The starting box is a suggested area, not automatic detection. Drag its corners or adjust the edges below. Exclude every name, address, ID, barcode and patient detail.',
-            )}
-          </Text>
-          <View style={{ alignItems: 'center', padding: 12 }}>
-            <View style={{ width, height }}>
-              <Image
-                source={{ uri: source.uri }}
-                style={{ width, height }}
-                resizeMode="contain"
-              />
-              <View
-                pointerEvents="none"
-                style={[
-                  s.mask,
-                  { left: 0, top: 0, width, height: crop.top * height },
-                ]}
-              />
-              <View
-                pointerEvents="none"
-                style={[
-                  s.mask,
-                  {
-                    left: 0,
-                    top: crop.bottom * height,
-                    width,
-                    height: (1 - crop.bottom) * height,
-                  },
-                ]}
-              />
-              <View
-                pointerEvents="none"
-                style={[
-                  s.mask,
-                  {
-                    left: 0,
-                    top: crop.top * height,
-                    width: crop.left * width,
-                    height: (crop.bottom - crop.top) * height,
-                  },
-                ]}
-              />
-              <View
-                pointerEvents="none"
-                style={[
-                  s.mask,
-                  {
-                    left: crop.right * width,
-                    top: crop.top * height,
-                    width: (1 - crop.right) * width,
-                    height: (crop.bottom - crop.top) * height,
-                  },
-                ]}
-              />
-              <View
-                pointerEvents="none"
-                style={[
-                  s.selection,
-                  {
-                    left: crop.left * width,
-                    top: crop.top * height,
-                    width: (crop.right - crop.left) * width,
-                    height: (crop.bottom - crop.top) * height,
-                  },
-                ]}
-              />
-              {handle('start')}
-              {handle('end')}
-            </View>
-          </View>
-          <Text style={s.text}>
-            {t(
-              'Only the selected area will appear in the next preview. Nothing is uploaded yet.',
-            )}
-          </Text>
-          {(['top', 'bottom', 'left', 'right'] as const).map((edge) => (
-            <View key={edge} style={s.row}>
-              <Text style={[s.text, { flex: 1, textTransform: 'capitalize' }]}>
-                {edge} {t('edge')}
-              </Text>
-              {[-1, 1].map((direction) => (
-                <Pressable
-                  key={direction}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Move ${edge} ${edge === 'top' || edge === 'bottom' ? (direction < 0 ? 'up' : 'down') : direction < 0 ? 'left' : 'right'}`}
-                  disabled={busy}
-                  style={s.smallButton}
-                  onPress={() =>
-                    setCrop(
-                      moveCorner(
-                        crop,
-                        edge === 'top' || edge === 'left' ? 'start' : 'end',
-                        edge === 'left' || edge === 'right'
-                          ? direction * 0.02
-                          : 0,
-                        edge === 'top' || edge === 'bottom'
-                          ? direction * 0.02
-                          : 0,
-                      ),
-                    )
-                  }
-                >
-                  <Text>{direction < 0 ? '−' : '+'}</Text>
-                </Pressable>
-              ))}
-            </View>
-          ))}
-          {!!error && (
-            <Text accessibilityRole="alert" style={{ color: '#8C2926' }}>
-              {error}
-            </Text>
-          )}
-          <Pressable
-            accessibilityRole="button"
-            disabled={busy}
-            style={s.button}
-            onPress={() => void apply()}
-          >
-            <Text style={s.buttonText}>
-              {busy
-                ? t('Creating crop…')
-                : t('Use this crop and review privacy')}
-            </Text>
-          </Pressable>
-          <Pressable
-            accessibilityRole="button"
-            disabled={busy}
-            style={s.smallButton}
-            onPress={onCancel}
-          >
-            <Text>{t('Cancel — keep image on device')}</Text>
-          </Pressable>
-        </ScrollView>
-      </SafeAreaView>
+      {content}
     </Modal>
   );
 }

@@ -6,6 +6,109 @@ export const languageNames: Record<Language, string> = {
   ar: 'العربية',
 };
 export const messages: Record<string, Record<Language, string>> = {
+  Profile: { en: 'Profile', fr: 'Profil', ar: 'الملف الشخصي' },
+  'Use camera': {
+    en: 'Use camera',
+    fr: 'Utiliser la caméra',
+    ar: 'استخدام الكاميرا',
+  },
+  Camera: { en: 'Camera', fr: 'Caméra', ar: 'الكاميرا' },
+  'Phone storage': {
+    en: 'Phone storage',
+    fr: 'Stockage du téléphone',
+    ar: 'تخزين الهاتف',
+  },
+  'Close scan': { en: 'Close scan', fr: 'Fermer le scan', ar: 'إغلاق المسح' },
+  'Take a clear photo': {
+    en: 'Take a clear photo',
+    fr: 'Prenez une photo nette',
+    ar: 'التقط صورة واضحة',
+  },
+  'Choose a photo from your phone': {
+    en: 'Choose a photo from your phone',
+    fr: 'Choisissez une photo sur votre téléphone',
+    ar: 'اختر صورة من هاتفك',
+  },
+  'Crop the medicine details next. Nothing is uploaded until you confirm.': {
+    en: 'Crop the medicine details next. Nothing is uploaded until you confirm.',
+    fr: 'Recadrez ensuite les informations du médicament. Rien ne sera envoyé sans votre confirmation.',
+    ar: 'قصّ معلومات الدواء في الخطوة التالية. لن يتم إرسال شيء قبل تأكيدك.',
+  },
+  'Open camera': {
+    en: 'Open camera',
+    fr: 'Ouvrir la caméra',
+    ar: 'فتح الكاميرا',
+  },
+  'Open phone settings': {
+    en: 'Open phone settings',
+    fr: 'Ouvrir les paramètres du téléphone',
+    ar: 'فتح إعدادات الهاتف',
+  },
+  'Open your phone settings to manage camera access.': {
+    en: 'Open your phone settings to manage camera access.',
+    fr: 'Ouvrez les paramètres du téléphone pour gérer l’accès à la caméra.',
+    ar: 'افتح إعدادات هاتفك لإدارة إذن الكاميرا.',
+  },
+  'Scan settings': {
+    en: 'Scan settings',
+    fr: 'Paramètres du scan',
+    ar: 'إعدادات المسح',
+  },
+  'Allow processing in scan settings to continue.': {
+    en: 'Allow processing in scan settings to continue.',
+    fr: 'Autorisez le traitement dans les paramètres du scan pour continuer.',
+    ar: 'اسمح بالمعالجة في إعدادات المسح للمتابعة.',
+  },
+  'Extract medicine details': {
+    en: 'Extract medicine details',
+    fr: 'Extraire les informations',
+    ar: 'استخراج معلومات الدواء',
+  },
+  'Continue with this crop': {
+    en: 'Continue with this crop',
+    fr: 'Continuer avec ce recadrage',
+    ar: 'المتابعة بهذه الصورة المقصوصة',
+  },
+  'Saved to your account for medicine and prescription scans. Change these anytime in your profile.':
+    {
+      en: 'Saved to your account for medicine and prescription scans. Change these anytime in your profile.',
+      fr: 'Enregistré dans votre compte pour les scans de médicaments et d’ordonnances. Modifiable à tout moment dans votre profil.',
+      ar: 'تُحفظ في حسابك لمسح الأدوية والوصفات. يمكنك تعديلها في ملفك الشخصي في أي وقت.',
+    },
+  'Allow cropped medicine images to be sent to Saydaliyati and OpenAI for processing.':
+    {
+      en: 'Allow cropped medicine images to be sent to Saydaliyati and OpenAI for processing.',
+      fr: 'Autoriser l’envoi des images recadrées à Saydaliyati et OpenAI pour traitement.',
+      ar: 'السماح بإرسال صور الأدوية المقصوصة إلى صيدليتي وOpenAI للمعالجة.',
+    },
+  'Only the crop you approve is uploaded. You can turn this permission off anytime.':
+    {
+      en: 'Only the crop you approve is uploaded. You can turn this permission off anytime.',
+      fr: 'Seule la zone recadrée que vous approuvez est envoyée. Vous pouvez désactiver cette autorisation à tout moment.',
+      ar: 'تُرسل فقط الصورة المقصوصة التي توافق عليها. يمكنك إلغاء هذا الإذن في أي وقت.',
+    },
+  'Save and continue': {
+    en: 'Save and continue',
+    fr: 'Enregistrer et continuer',
+    ar: 'حفظ ومتابعة',
+  },
+  'Manage camera access in phone settings': {
+    en: 'Manage camera access in phone settings',
+    fr: 'Gérer l’accès à la caméra dans les paramètres du téléphone',
+    ar: 'إدارة إذن الكاميرا في إعدادات الهاتف',
+  },
+  'Try again': { en: 'Try again', fr: 'Réessayer', ar: 'إعادة المحاولة' },
+  'Unable to load scan settings. Please try again.': {
+    en: 'Unable to load scan settings. Please try again.',
+    fr: 'Impossible de charger les paramètres du scan. Réessayez.',
+    ar: 'تعذر تحميل إعدادات المسح. حاول مجددًا.',
+  },
+  'Unable to save scan settings. Please try again.': {
+    en: 'Unable to save scan settings. Please try again.',
+    fr: 'Impossible d’enregistrer les paramètres du scan. Réessayez.',
+    ar: 'تعذر حفظ إعدادات المسح. حاول مجددًا.',
+  },
+
   Current: { en: 'Current', fr: 'En cours', ar: 'الحالية' },
 
   Back: {

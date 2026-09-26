@@ -14,6 +14,7 @@ import {
 import { KeyboardFocusContext, useKeyboardForm } from '../src/keyboard';
 import { KeyboardTextInput as TextInput } from '../src/keyboard';
 import type { ScanPreview } from '../src/scan-preview';
+import { ScanSettings } from '../src/scan-settings';
 import { PrescriptionScan } from '../src/prescription-scan';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
@@ -1101,6 +1102,8 @@ export default function Home() {
                     )}
                     {tab === 'Settings' && (
                       <>
+                        <Text style={styles.heading}>{t('Profile')}</Text>
+                        <ScanSettings />
                         <View style={styles.card}>
                           <Text style={styles.heading}>
                             {t('Reminder preferences')}
