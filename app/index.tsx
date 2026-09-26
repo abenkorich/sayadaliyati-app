@@ -359,7 +359,7 @@ export default function Home() {
     const load = async () => {
       if (tab === 'Medicines') {
         const r = await client.request<Result<Medicine[]>>(
-          `/medicines?page=${page}&limit=20${term ? `&q=${encodeURIComponent(term)}` : ''}${category ? `&category=${encodeURIComponent(category)}` : ''}${directoryParams(directoryFilters)}`,
+          `/medicines?page=${page}&limit=20${term && term !== '*' ? `&q=${encodeURIComponent(term)}` : ''}${category ? `&category=${encodeURIComponent(category)}` : ''}${directoryParams(directoryFilters)}`,
         );
         if (active) {
           setMedicines(r.data);
@@ -906,7 +906,13 @@ export default function Home() {
                         <MedicineSearch
                           label={t('Search medicine names')}
                           value={search}
-                          onChange={setSearch}
+                          onChange={(value) => {
+                            setSearch(value);
+                            if (value.trim() === '*') {
+                              setTerm('*');
+                              setPage(1);
+                            }
+                          }}
                           api={catalogApi}
                           category={category}
                           filters={directoryParams(directoryFilters, true)}
