@@ -1,13 +1,9 @@
+import { AppText as Text, useLanguage } from './language';
+import { DateTimeField } from './date-time-field';
+import { KeyboardTextInput as TextInput } from './keyboard';
 import type { ScanPreview } from './scan-preview';
 import React, { useEffect, useState } from 'react';
-import {
-  ActivityIndicator,
-  Pressable,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { PrescriptionScan } from './prescription-scan';
 import { MedicineImage } from './medicine-search';
@@ -61,29 +57,32 @@ export function Tile({
   );
 }
 function StockCard({ item }: { item: Item }) {
+  const { t } = useLanguage();
   return (
     <View style={s.tile}>
       <MedicineImage medicine={item.medicine} small />
       <View style={{ flex: 1, gap: 6 }}>
         <Text style={s.heading}>{item.medicine.name}</Text>
         <Text style={s.muted}>
-          {item.medicine.category?.name ?? 'Uncategorized'}
+          {item.medicine.category?.name ?? t('Uncategorized')}
         </Text>
         <Text style={s.muted}>
           {[
             item.medicine.strength,
-            `${item.quantity} ${item.unit.toLowerCase()}`,
+            `${item.quantity} ${t(item.unit.toLowerCase())}`,
           ]
             .filter(Boolean)
             .join(' · ')}
         </Text>
         <Text style={s.muted}>
           {item.expiryDate
-            ? `Expiry: ${item.expiryDate.slice(0, 10)}`
-            : 'Expiry not recorded'}
+            ? t('Expiry: {date}', { date: item.expiryDate.slice(0, 10) })
+            : t('Expiry not recorded')}
         </Text>
         {item.isLowStock && (
-          <Text style={{ color: '#94621C', fontWeight: '600' }}>Low stock</Text>
+          <Text style={{ color: '#94621C', fontWeight: '600' }}>
+            {t('Low stock')}
+          </Text>
         )}
       </View>
     </View>
@@ -102,6 +101,7 @@ export function PharmacyScreen({
   openTreatment(id: string): void;
   report(error: unknown): void;
 }) {
+  const { t } = useLanguage();
   const { client } = useSession();
   const [data, setData] = useState<{
     items: Item[];
@@ -163,14 +163,14 @@ export function PharmacyScreen({
   if (loading)
     return (
       <ActivityIndicator
-        accessibilityLabel="Loading your pharmacy"
+        accessibilityLabel={t('Loading your pharmacy')}
         color={palette.teal}
       />
     );
   if (failed || !data)
     return (
       <Text style={s.muted}>
-        Your pharmacy could not be loaded. Pull down to try again.
+        {t('Your pharmacy could not be loaded. Pull down to try again.')}
       </Text>
     );
   return (
@@ -179,13 +179,17 @@ export function PharmacyScreen({
         <>
           <View style={s.hero}>
             <View style={{ flex: 1, gap: 10 }}>
-              <Text style={s.eyebrow}>YOUR EVERYDAY HEALTH COMPANION</Text>
+              <Text style={s.eyebrow}>
+                {t('YOUR EVERYDAY HEALTH COMPANION')}
+              </Text>
               <Text style={s.title}>
-                Hello{data.name ? `, ${data.name}` : ''}.
+                {t('Hello')}
+                {data.name ? `, ${data.name}` : ''}.
               </Text>
               <Text style={s.muted}>
-                A little care, every day. Keep your medicines and routines
-                together.
+                {t(
+                  'A little care, every day. Keep your medicines and routines together.',
+                )}
               </Text>
             </View>
             <Ionicons name="leaf-outline" size={66} color={palette.teal} />
@@ -212,7 +216,7 @@ export function PharmacyScreen({
               },
             ].map((x) => (
               <Pressable
-                key={x.label}
+                key={t(x.label)}
                 accessibilityRole="button"
                 onPress={() => navigate(x.tab)}
                 style={s.stat}
@@ -227,26 +231,30 @@ export function PharmacyScreen({
               </Pressable>
             ))}
           </View>
-          <Text style={s.section}>Your current treatments</Text>
+          <Text style={s.section}>{t('Your current treatments')}</Text>
           {data.courses.length ? (
             data.courses.map((c) => (
               <Tile
                 key={c.id}
                 title={c.name}
-                subtitle={`Review schedule · ends ${c.endDate.slice(0, 10)}`}
+                subtitle={t('Review schedule · ends {date}', {
+                  date: c.endDate.slice(0, 10),
+                })}
                 icon="calendar-outline"
                 onPress={() => openTreatment(c.id)}
               />
             ))
           ) : (
             <View style={s.card}>
-              <Text style={s.heading}>Room for your routine</Text>
+              <Text style={s.heading}>{t('Room for your routine')}</Text>
               <Text style={s.muted}>
-                Your active treatment plans will appear here when available.
+                {t(
+                  'Your active treatment plans will appear here when available.',
+                )}
               </Text>
             </View>
           )}
-          <Text style={s.section}>Quick actions</Text>
+          <Text style={s.section}>{t('Quick actions')}</Text>
           <View style={{ flexDirection: 'row', gap: 12 }}>
             <Pressable
               accessibilityRole="button"
@@ -258,8 +266,8 @@ export function PharmacyScreen({
                 size={28}
                 color={palette.teal}
               />
-              <Text style={s.heading}>Add medicine</Text>
-              <Text style={s.muted}>Find it in the catalog</Text>
+              <Text style={s.heading}>{t('Add medicine')}</Text>
+              <Text style={s.muted}>{t('Find it in the catalog')}</Text>
             </Pressable>
             <Pressable
               accessibilityRole="button"
@@ -271,19 +279,19 @@ export function PharmacyScreen({
                 size={28}
                 color={palette.teal}
               />
-              <Text style={s.heading}>My reminders</Text>
-              <Text style={s.muted}>Stay up to date</Text>
+              <Text style={s.heading}>{t('My reminders')}</Text>
+              <Text style={s.muted}>{t('Stay up to date')}</Text>
             </Pressable>
           </View>
           <View style={s.between}>
-            <Text style={s.section}>Recently added</Text>
+            <Text style={s.section}>{t('Recently added')}</Text>
             <Pressable
               accessibilityRole="button"
               onPress={() => navigate('My Pharmacy')}
               style={{ padding: 12 }}
             >
               <Text style={{ color: palette.teal, fontWeight: '600' }}>
-                View all
+                {t('View all')}
               </Text>
             </Pressable>
           </View>
@@ -291,18 +299,18 @@ export function PharmacyScreen({
       ) : (
         <>
           <Text style={s.muted}>
-            Your medicines, quantities and expiry dates in one place.
+            {t('Your medicines, quantities and expiry dates in one place.')}
           </Text>
           <Tile
-            title="Add a medicine"
-            subtitle="Search the catalog to build your pharmacy"
+            title={t('Add a medicine')}
+            subtitle={t('Search the catalog to build your pharmacy')}
             icon="add-circle-outline"
             onPress={() => navigate('Medicines')}
           />
           <View style={{ flexDirection: 'row', gap: 8 }}>
             {['All', 'Low stock', 'Expired'].map((f) => (
               <Pressable
-                key={f}
+                key={t(f)}
                 accessibilityRole="button"
                 accessibilityState={{ selected: filter === f }}
                 onPress={() => {
@@ -322,7 +330,9 @@ export function PharmacyScreen({
               </Pressable>
             ))}
           </View>
-          <Text style={s.muted}>{data.total} stock entries</Text>
+          <Text style={s.muted}>
+            {data.total} {t('stock entries')}
+          </Text>
         </>
       )}
       {data.items.map((item) => (
@@ -333,13 +343,15 @@ export function PharmacyScreen({
           <Ionicons name="file-tray-outline" size={36} color={palette.teal} />
           <Text style={s.heading}>
             {filter === 'All'
-              ? 'Your pharmacy starts here'
-              : 'No matching medicines'}
+              ? t('Your pharmacy starts here')
+              : t('No matching medicines')}
           </Text>
           <Text style={s.muted}>
             {filter === 'All'
-              ? 'Add your first medicine to keep track of what you have at home.'
-              : 'Try another filter to see your stock.'}
+              ? t(
+                  'Add your first medicine to keep track of what you have at home.',
+                )
+              : t('Try another filter to see your stock.')}
           </Text>
         </View>
       )}
@@ -351,7 +363,7 @@ export function PharmacyScreen({
             onPress={() => setPage(page - 1)}
             style={s.chip}
           >
-            <Text>Previous</Text>
+            <Text>{t('Previous')}</Text>
           </Pressable>
           <Text>
             {page} / {pages}
@@ -362,7 +374,7 @@ export function PharmacyScreen({
             onPress={() => setPage(page + 1)}
             style={s.chip}
           >
-            <Text>Next</Text>
+            <Text>{t('Next')}</Text>
           </Pressable>
         </View>
       )}
@@ -380,6 +392,7 @@ export function AddStock({
   save(body: Record<string, unknown>): void;
   busy: boolean;
 }) {
+  const { t } = useLanguage();
   const [quantity, setQuantity] = useState(
     initialScan?.packageInfo?.quantity ?? '',
   );
@@ -390,12 +403,15 @@ export function AddStock({
   const [error, setError] = useState('');
   return (
     <View style={{ gap: 12 }}>
-      <Text style={s.section}>Add to My Pharmacy</Text>
+      <Text style={s.section}>{t('Add to My Pharmacy')}</Text>
       {initialScan && (
         <Text style={s.muted}>
-          Scanned: {initialScan.medications[0]?.extractedName}{' '}
-          {initialScan.medications[0]?.strength}. Verify this matches the
-          selected medicine. Pack quantity may differ from your remaining stock.
+          {t('Scanned:')}
+          {initialScan.medications[0]?.extractedName}{' '}
+          {initialScan.medications[0]?.strength}
+          {t(
+            '. Verify this matches the selected medicine. Pack quantity may differ from your remaining stock.',
+          )}
         </Text>
       )}
       <PrescriptionScan
@@ -408,25 +424,28 @@ export function AddStock({
           setUnit(pack?.unit ?? '');
           setExpiry(pack?.expiryDate ?? '');
           setError(
-            'Check that the scanned box matches the selected catalog medicine and that the quantity is your remaining stock.',
+            t(
+              'Check that the scanned box matches the selected catalog medicine and that the quantity is your remaining stock.',
+            ),
           );
         }}
       />
 
       <Text style={s.muted}>
-        Record the quantity you have. This does not change your treatment or
-        dose.
+        {t(
+          'Record the quantity you have. This does not change your treatment or dose.',
+        )}
       </Text>
-      <Text style={s.heading}>Quantity</Text>
+      <Text style={s.heading}>{t('Quantity')}</Text>
       <TextInput
-        accessibilityLabel="Stock quantity"
+        accessibilityLabel={t('Stock quantity')}
         keyboardType="decimal-pad"
         value={quantity}
         onChangeText={setQuantity}
-        placeholder="e.g. 20"
+        placeholder={t('e.g. 20')}
         style={s.input}
       />
-      <Text style={s.heading}>Unit</Text>
+      <Text style={s.heading}>{t('Unit')}</Text>
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
         {units.map((u) => (
           <Pressable
@@ -436,21 +455,19 @@ export function AddStock({
             onPress={() => setUnit(u)}
             style={[s.chip, unit === u && { backgroundColor: palette.soft }]}
           >
-            <Text>{u.toLowerCase()}</Text>
+            <Text>{t(u.toLowerCase())}</Text>
           </Pressable>
         ))}
       </View>
-      <Text style={s.heading}>Expiry date (optional)</Text>
-      <TextInput
-        accessibilityLabel="Expiry date YYYY-MM-DD"
-        placeholder="YYYY-MM-DD"
+      <DateTimeField
+        label={t('Expiry date (optional)')}
         value={expiry}
-        onChangeText={setExpiry}
-        style={s.input}
+        onChange={setExpiry}
+        disabled={busy}
       />
       {!!error && (
         <Text accessibilityRole="alert" style={{ color: '#8C2926' }}>
-          {error}
+          {t(error)}
         </Text>
       )}
       <Pressable
@@ -474,7 +491,7 @@ export function AddStock({
         }}
       >
         <Text style={{ color: '#fff', fontWeight: '700', textAlign: 'center' }}>
-          {busy ? 'Saving…' : 'Add to My Pharmacy'}
+          {busy ? t('Saving…') : t('Add to My Pharmacy')}
         </Text>
       </Pressable>
     </View>

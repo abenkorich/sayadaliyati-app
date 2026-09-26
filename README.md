@@ -63,7 +63,7 @@ medicines. Stock creation does not change treatment schedules or record doses.
 The teal palette, rounded cards, icon navigation and quick-action sheet follow the
 original design assets. The central Add action opens available actions; camera
 scanning, AI assistance, doctors/community sharing, treatment
-creation, stock editing and phone push remain future work. The UI is English.
+creation, stock editing and phone push remain future work. The app supports English, French and Arabic, with a saved language choice and right-to-left Arabic layout.
 Push requires Expo/Firebase provisioning and native-device testing.
 
 The original monorepo is preserved. No remote, commit or push was created automatically.
@@ -71,7 +71,7 @@ The original monorepo is preserved. No remote, commit or push was created automa
 ## Welcome screen
 
 Each fresh app launch opens the public landing screen, adapted from the web
-landing page's English copy, teal styling, illustrative pharmacy preview, feature
+landing page's English, French and Arabic copy, teal styling, illustrative pharmacy preview, feature
 sections, getting-started steps and FAQ. Create-account and sign-in actions open
 the existing authentication form; restored sessions get a Continue action without
 signing in again. Returning from the background keeps the current screen.
@@ -84,3 +84,21 @@ Both mobile and web now support manual drafts, catalog linking, image attachment
 field review, confirmation and archive. Open **More → My Prescriptions** or the
 **Add** menu. See [Prescription management](docs/PRESCRIPTIONS.md) for supported
 regimens, attachment configuration and the required native rebuild.
+
+## Language, date/time inputs and navigation
+
+The language selector is available on the welcome screen and inside the app.
+Its device preference survives restarts and is used for new account registration.
+Medicine names, prescribed instructions and user-entered data retain their original text.
+
+Prescription dates, treatment dates, stock expiry dates and daily dose times use
+native date/time selectors. Optional fields can be cleared, and daily times can
+be added or removed. API values remain local calendar dates (`YYYY-MM-DD`) and
+24-hour times (`HH:mm`), with existing validation preserved.
+
+Focused inputs scroll above the keyboard, and the bottom navigation hides while
+typing. Back controls and Android Back return through screen history; prescription
+drafts and edited reviews retain their confirmation before discarding changes.
+
+Rebuild and reinstall the native app after updating dependencies: the date/time
+picker adds a native module, so refreshing an older installed binary is insufficient.

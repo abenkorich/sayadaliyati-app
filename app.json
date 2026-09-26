@@ -9,9 +9,10 @@
     "android": {
       "package": "com.saydaliyati.app",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/icon-family.png",
+        "foregroundImage": "./assets/icon-family-padded.png",
         "backgroundColor": "#087F7B"
-      }
+      },
+      "softwareKeyboardLayoutMode": "resize"
     },
     "plugins": [
       "expo-router",
@@ -26,6 +27,6 @@
         }
       ]
     ],
-    "icon": "./assets/icon-family.png"
+    "icon": "./assets/icon-family-padded.png"
   }
 }

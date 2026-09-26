@@ -1,3 +1,4 @@
+import { AppText as Text, useLanguage } from './language';
 import { PrescriptionCrop, type CropSource } from './prescription-crop';
 import React, { useEffect, useRef, useState } from 'react';
 import {
@@ -7,7 +8,6 @@ import {
   Pressable,
   StyleSheet,
   Switch,
-  Text,
   View,
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -26,6 +26,7 @@ export function PrescriptionScan({
   onApply(preview: ScanPreview): void;
   report(error: unknown): void;
 }) {
+  const { t } = useLanguage();
   const { client } = useSession();
   const [cropSource, setCropSource] = useState<CropSource | null>(null);
   const [consent, setConsent] = useState(false);
@@ -92,7 +93,9 @@ export function PrescriptionScan({
         if (!permission.granted) {
           if (mounted.current)
             setError(
-              'Camera access is needed. Enable it in phone settings or choose an image instead.',
+              t(
+                'Camera access is needed. Enable it in phone settings or choose an image instead.',
+              ),
             );
           return;
         }
@@ -123,7 +126,7 @@ export function PrescriptionScan({
       setPreview(null);
     } catch (e) {
       if (mounted.current)
-        setError(e instanceof Error ? e.message : 'Unable to open image.');
+        setError(e instanceof Error ? e.message : t('Unable to open image.'));
     } finally {
       lock.current = false;
       if (mounted.current) setBusy(false);
@@ -148,7 +151,9 @@ export function PrescriptionScan({
         setPreview(next);
         if (!next.medications.length)
           setError(
-            'No readable medicine lines found. Try a tighter, clearer crop or enter details manually.',
+            t(
+              'No readable medicine lines found. Try a tighter, clearer crop or enter details manually.',
+            ),
           );
       }
     } catch (e) {
@@ -157,10 +162,12 @@ export function PrescriptionScan({
         if ((e as { status?: number })?.status === 401) report(e);
         setError(
           code === 'PRESCRIPTION_SCAN_NOT_CONFIGURED'
-            ? 'Your server has not configured OpenAI extraction yet.'
+            ? t('Your server has not configured OpenAI extraction yet.')
             : code === 'RATE_LIMITED'
-              ? 'Scan limit reached. Wait before trying again.'
-              : 'Extraction could not be completed. Try a clearer crop or enter details manually.',
+              ? t('Scan limit reached. Wait before trying again.')
+              : t(
+                  'Extraction could not be completed. Try a clearer crop or enter details manually.',
+                ),
         );
       }
     } finally {
@@ -199,32 +206,35 @@ export function PrescriptionScan({
         <Ionicons name="scan-outline" size={30} color="#087F7B" />
         <View style={{ flex: 1, gap: 4 }}>
           <Text style={s.title}>
-            {mode === 'box' ? 'Scan a medicine box' : 'Scan your prescription'}
+            {mode === 'box'
+              ? t('Scan a medicine box')
+              : t('Scan your prescription')}
           </Text>
           <Text style={s.text}>
-            1. Crop to medicines · 2. Check privacy · 3. Extract
+            {t('1. Crop to medicines · 2. Check privacy · 3. Extract')}
           </Text>
         </View>
       </View>
       <Text style={s.text}>
-        In the crop editor, keep only medicine information. Exclude names, birth
-        dates, addresses, identifiers, barcodes and patient/doctor headers. If
-        identifying text overlaps a medicine, use manual entry instead.
+        {t(
+          'In the crop editor, keep only medicine information. Exclude names, birth dates, addresses, identifiers, barcodes and patient/doctor headers. If identifying text overlaps a medicine, use manual entry instead.',
+        )}
       </Text>
       <View style={s.row}>
-        {action('Take photo', () => void choose(true))}
-        {action('Choose image', () => void choose(false))}
+        {action(t('Take photo'), () => void choose(true))}
+        {action(t('Choose image'), () => void choose(false))}
       </View>
       {checking ? (
-        <Text style={s.text}>Checking extraction availability…</Text>
+        <Text style={s.text}>{t('Checking extraction availability…')}</Text>
       ) : (
         !enabled && (
           <>
             <Text style={s.text}>
-              Automatic extraction is currently unavailable. You can enter your
-              medicines manually. No image has been sent.
+              {t(
+                'Automatic extraction is currently unavailable. You can enter your medicines manually. No image has been sent.',
+              )}
             </Text>
-            {action('Check again', () => {
+            {action(t('Check again'), () => {
               setChecking(true);
               setRefresh((n) => n + 1);
             })}
@@ -235,23 +245,27 @@ export function PrescriptionScan({
         <>
           <Image
             source={{ uri: image.uri }}
-            accessibilityLabel="Cropped medicines image — review for patient information"
+            accessibilityLabel={t(
+              'Cropped medicines image — review for patient information',
+            )}
             resizeMode="contain"
             style={s.preview}
           />
           <Text style={s.text}>
-            Only this crop will be sent through your API to OpenAI. Image
-            metadata is removed on the server. Check the visible text carefully:
-            cropping does not automatically detect or erase personal
-            information.
+            {t(
+              'Only this crop will be sent through your API to OpenAI. Image metadata is removed on the server. Check the visible text carefully: cropping does not automatically detect or erase personal information.',
+            )}
           </Text>
           <View style={s.row}>
             <Text style={[s.text, { flex: 1 }]}>
-              I checked this crop: only medicine information is visible, with no
-              patient details.
+              {t(
+                'I checked this crop: only medicine information is visible, with no patient details.',
+              )}
             </Text>
             <Switch
-              accessibilityLabel="Confirm crop contains no patient information"
+              accessibilityLabel={t(
+                'Confirm crop contains no patient information',
+              )}
               value={privacy}
               disabled={busy || disabled}
               onValueChange={setPrivacy}
@@ -260,11 +274,12 @@ export function PrescriptionScan({
           </View>
           <View style={s.row}>
             <Text style={[s.text, { flex: 1 }]}>
-              I agree to send only this medicines crop to the Saydaliyati server
-              and OpenAI for processing.
+              {t(
+                'I agree to send only this medicines crop to the Saydaliyati server and OpenAI for processing.',
+              )}
             </Text>
             <Switch
-              accessibilityLabel="Agree to server and OpenAI processing"
+              accessibilityLabel={t('Agree to server and OpenAI processing')}
               value={consent}
               disabled={busy || disabled}
               onValueChange={setConsent}
@@ -272,11 +287,11 @@ export function PrescriptionScan({
             />
           </View>
           {action(
-            'Send medicines crop to OpenAI',
+            t('Send medicines crop to OpenAI'),
             () => void extract(),
             !privacy || !consent || !enabled,
           )}
-          {action('Remove crop', () => {
+          {action(t('Remove crop'), () => {
             setImage(null);
             setPrivacy(false);
             setConsent(false);
@@ -287,7 +302,7 @@ export function PrescriptionScan({
       )}
       {busy && (
         <ActivityIndicator
-          accessibilityLabel="Processing medicines crop"
+          accessibilityLabel={t('Processing medicines crop')}
           color="#087F7B"
         />
       )}
@@ -298,10 +313,11 @@ export function PrescriptionScan({
       )}
       {preview && preview.medications.length > 0 && (
         <>
-          <Text style={s.title}>Review extracted suggestions</Text>
+          <Text style={s.title}>{t('Review extracted suggestions')}</Text>
           <Text style={s.text}>
-            Compare these with the crop. Unknown values stay blank. Catalog
-            links, doses and schedules are never confirmed automatically.
+            {t(
+              'Compare these with the crop. Unknown values stay blank. Catalog links, doses and schedules are never confirmed automatically.',
+            )}
           </Text>
           {preview.warnings.map((warning, i) => (
             <Text key={i} style={s.error}>
@@ -310,7 +326,9 @@ export function PrescriptionScan({
           ))}
           {preview.medications.map((line, i) => (
             <View key={i} style={s.suggestion}>
-              <Text style={s.title}>Medicine {i + 1}</Text>
+              <Text style={s.title}>
+                {t('Medicine')} {i + 1}
+              </Text>
               {fields
                 .filter((f) =>
                   mode === 'box'
@@ -319,27 +337,31 @@ export function PrescriptionScan({
                 )
                 .map((f) => (
                   <Text key={f.name} style={s.text}>
-                    {f.label}: {line[f.name] || 'Unknown'}
+                    {t(f.label)}: {line[f.name] || t('Unknown')}
                   </Text>
                 ))}
             </View>
           ))}
           {preview.packageInfo && (
             <Text style={s.text}>
-              Pack quantity: {preview.packageInfo.quantity || 'Unknown'}{' '}
+              {t('Pack quantity:')}
+              {preview.packageInfo.quantity || t('Unknown')}{' '}
               {preview.packageInfo.unit}
-              Expiry: {preview.packageInfo.expiryDate || 'Unknown'}
-              Check the quantity you actually have; a box count is not remaining
-              stock.
+              {t('Expiry:')}
+              {preview.packageInfo.expiryDate || t('Unknown')}
+              {t(
+                'Check the quantity you actually have; a box count is not remaining stock.',
+              )}
             </Text>
           )}
           <View style={s.row}>
             <Text style={[s.text, { flex: 1 }]}>
-              I reviewed the suggestions. Use them to replace this draft’s
-              current entries.
+              {t(
+                'I reviewed the suggestions. Use them to replace this draft’s current entries.',
+              )}
             </Text>
             <Switch
-              accessibilityLabel="Accept extracted suggestions for editing"
+              accessibilityLabel={t('Accept extracted suggestions for editing')}
               value={reviewed}
               disabled={busy || disabled}
               onValueChange={setReviewed}
@@ -347,7 +369,7 @@ export function PrescriptionScan({
             />
           </View>
           {action(
-            'Use suggestions in the form',
+            t('Use suggestions in the form'),
             () => {
               onApply(preview);
               setPreview(null);

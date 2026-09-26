@@ -1,10 +1,11 @@
+import { AppText as Text, useLanguage } from './language';
+import { KeyboardTextInput as TextInput } from './keyboard';
 import React, { useEffect, useState } from 'react';
 import {
   Image,
+  Keyboard,
   Pressable,
   ScrollView,
-  Text,
-  TextInput,
   View,
   StyleSheet,
 } from 'react-native';
@@ -25,6 +26,7 @@ export function MedicineImage({
   medicine: { name: string; boxImageUrl?: string | null };
   small?: boolean;
 }) {
+  const { t } = useLanguage();
   const [failed, setFailed] = useState<string | null>(null);
   const src = medicine.boxImageUrl;
   return (
@@ -40,11 +42,11 @@ export function MedicineImage({
       ) : (
         <View
           accessible
-          accessibilityLabel="Box image not available"
+          accessibilityLabel={t('Box image not available')}
           style={s.placeholder}
         >
           <Text style={s.cross}>✚</Text>
-          {!small && <Text style={s.muted}>No box image yet</Text>}
+          {!small && <Text style={s.muted}>{t('No box image yet')}</Text>}
         </View>
       )}
     </View>
@@ -57,6 +59,8 @@ export function MedicineSearch({
   api,
   category = '',
   disabled = false,
+  filters = '',
+  suggestionsEnabled = true,
   label = 'Search medicines',
 }: {
   value: string;
@@ -65,11 +69,14 @@ export function MedicineSearch({
   api: Request;
   category?: string;
   disabled?: boolean;
+  filters?: string;
+  suggestionsEnabled?: boolean;
   label?: string;
 }) {
+  const { t } = useLanguage();
   const [focused, setFocused] = useState(false);
   const query = value.trim();
-  const key = `${category}|${query}`;
+  const key = `${category}|${filters}|${query}`;
   const [state, setState] = useState<{
     key: string;
     data: CatalogItem[];
@@ -77,12 +84,12 @@ export function MedicineSearch({
     loading: boolean;
   }>({ key: '', data: [], error: '', loading: false });
   useEffect(() => {
-    if (!focused || disabled || query.length < 2) return;
+    if (!focused || disabled || !suggestionsEnabled || query.length < 2) return;
     let active = true;
     const timer = setTimeout(() => {
       setState({ key, data: [], error: '', loading: true });
       void api<CatalogItem[]>(
-        `/medicines/suggestions?q=${encodeURIComponent(query)}${category ? `&category=${encodeURIComponent(category)}` : ''}`,
+        `/medicines/suggestions?q=${encodeURIComponent(query)}${category ? `&category=${encodeURIComponent(category)}` : ''}${filters}`,
       )
         .then((r) => {
           if (active)
@@ -102,9 +109,22 @@ export function MedicineSearch({
       active = false;
       clearTimeout(timer);
     };
-  }, [api, category, disabled, focused, key, query]);
+  }, [
+    api,
+    category,
+    disabled,
+    filters,
+    focused,
+    key,
+    query,
+    suggestionsEnabled,
+  ]);
   const visible =
-    focused && !disabled && state.key === key && query.length >= 2;
+    focused &&
+    !disabled &&
+    suggestionsEnabled &&
+    state.key === key &&
+    query.length >= 2;
   return (
     <View style={s.stack}>
       <Text>{label}</Text>
@@ -116,7 +136,7 @@ export function MedicineSearch({
         editable={!disabled}
         autoCapitalize="none"
         autoCorrect={false}
-        placeholder="Name or active ingredient"
+        placeholder={t('Name, ingredient, laboratory, barcode or MIPH code')}
         style={s.input}
         onFocus={() => setFocused(true)}
         onChangeText={(q) => {
@@ -125,15 +145,22 @@ export function MedicineSearch({
         }}
       />
       {visible && (
-        <View style={s.suggestions}>
+        <ScrollView
+          style={s.suggestions}
+          contentContainerStyle={{ padding: 10, gap: 8 }}
+          keyboardShouldPersistTaps="always"
+          nestedScrollEnabled
+        >
           {state.loading && (
-            <Text accessibilityLiveRegion="polite">Finding medicines…</Text>
+            <Text accessibilityLiveRegion="polite">
+              {t('Finding medicines…')}
+            </Text>
           )}
           {!!state.error && (
-            <Text accessibilityRole="alert">{state.error}</Text>
+            <Text accessibilityRole="alert">{t(state.error)}</Text>
           )}
           {!state.loading && !state.error && !state.data.length && (
-            <Text>No suggestions found.</Text>
+            <Text>{t('No suggestions found.')}</Text>
           )}
           {state.data.map((m) => (
             <Pressable
@@ -143,6 +170,7 @@ export function MedicineSearch({
               style={s.result}
               onPress={() => {
                 setFocused(false);
+                Keyboard.dismiss();
                 onChange(m.name);
                 onSelect(m);
               }}
@@ -161,10 +189,10 @@ export function MedicineSearch({
               accessibilityRole="button"
               onPress={() => setFocused(false)}
             >
-              <Text style={s.muted}>Dismiss suggestions</Text>
+              <Text style={s.muted}>{t('Dismiss suggestions')}</Text>
             </Pressable>
           )}
-        </View>
+        </ScrollView>
       )}
     </View>
   );
@@ -178,6 +206,7 @@ export function CategoryFilter({
   value: string;
   onChange(value: string): void;
 }) {
+  const { t } = useLanguage();
   const [categories, setCategories] = useState<{ id: string; name: string }[]>(
     [],
   );
@@ -194,7 +223,7 @@ export function CategoryFilter({
   }, [api]);
   return (
     <View style={s.stack}>
-      <Text>Category</Text>
+      <Text>{t('Category')}</Text>
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -253,8 +282,7 @@ const s = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#CCDAD7',
     borderRadius: 12,
-    padding: 10,
-    gap: 8,
+    maxHeight: 300,
   },
   result: {
     flexDirection: 'row',

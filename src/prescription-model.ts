@@ -28,11 +28,11 @@ export const fields = [
   { name: 'instructions', label: 'Instructions', kind: 'text', max: 4000 },
   {
     name: 'scheduledTimes',
-    label: 'Daily times (HH:mm, separated by commas)',
+    label: 'Daily times',
     kind: 'times',
   },
-  { name: 'startDate', label: 'Start date (YYYY-MM-DD)', kind: 'date' },
-  { name: 'endDate', label: 'End date (YYYY-MM-DD)', kind: 'date' },
+  { name: 'startDate', label: 'Start date', kind: 'date' },
+  { name: 'endDate', label: 'End date', kind: 'date' },
 ] as const;
 export type FieldName = (typeof fields)[number]['name'];
 export type Inputs = Record<FieldName, string>;

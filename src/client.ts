@@ -139,6 +139,9 @@ export class ApiClient {
     return this.refreshTask;
   }
   async request<T>(path: string, method = 'GET', body?: unknown): Promise<T> {
+    // Public catalog suggestions must not depend on a refresh token or rotate a session.
+    if (method === 'GET' && path.split('?')[0] === '/medicines/suggestions')
+      return this.send(path, method);
     const epoch = this.generation;
     if (!this.access) await this.refresh();
     const used = this.access;

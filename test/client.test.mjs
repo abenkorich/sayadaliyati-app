@@ -139,3 +139,18 @@ test('multipart uploads keep their boundary and auth; ambiguous failures are not
   );
   assert.equal(uploads, 1);
 });
+
+test('public medicine suggestions work without a session or token refresh', async () => {
+  const calls = [];
+  const client = new ApiClient(base, vault(), async (url, options) => {
+    calls.push(url);
+    assert.equal(options.headers.Authorization, undefined);
+    return response([{ id: 'synthetic', name: 'Synthetic medicine' }]);
+  });
+  const result = await client.request(
+    '/medicines/suggestions?q=synthetic&category=uncategorized',
+  );
+  assert.equal(result.data[0].id, 'synthetic');
+  assert.equal(calls.length, 1);
+  assert.match(calls[0], /medicines\/suggestions/);
+});

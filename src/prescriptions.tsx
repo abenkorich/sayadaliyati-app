@@ -1,3 +1,6 @@
+import { AppText as Text, useLanguage } from './language';
+import { DateTimeField, DailyTimePicker } from './date-time-field';
+import { KeyboardTextInput as TextInput } from './keyboard';
 import { MedicineSearch } from './medicine-search';
 import { PrescriptionScan } from './prescription-scan';
 import React, { useCallback, useEffect, useState } from 'react';
@@ -7,8 +10,6 @@ import {
   Pressable,
   StyleSheet,
   Switch,
-  Text,
-  TextInput,
   View,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
@@ -61,6 +62,7 @@ function Field({
   onChange(value: string): void;
   disabled?: boolean;
 }) {
+  const { t } = useLanguage();
   return (
     <View style={s.stack}>
       <Text style={s.label}>{label}</Text>
@@ -71,8 +73,8 @@ function Field({
         onChangeText={onChange}
         style={s.input}
         autoCapitalize="none"
-        placeholder="Unknown if blank"
-        multiline={label === 'Instructions'}
+        placeholder={t('Unknown if blank')}
+        multiline={label === t('Instructions')}
       />
     </View>
   );
@@ -88,25 +90,26 @@ function MedicinePicker({
   onChange(id: string): void;
   api: Request;
 }) {
+  const { t } = useLanguage();
   const [query, setQuery] = useState('');
   return (
     <View>
       <Text>
         {value
-          ? 'Catalog medicine linked. Search to replace it.'
-          : 'Choose a medicine or keep the written name.'}
+          ? t('Catalog medicine linked. Search to replace it.')
+          : t('Choose a medicine or keep the written name.')}
       </Text>
       <MedicineSearch
         value={query}
         onChange={setQuery}
         api={api}
         disabled={disabled}
-        label="Search catalog"
+        label={t('Search catalog')}
         onSelect={(m) => onChange(m.id)}
       />
       {!!value && (
         <Button
-          title="Clear catalog link"
+          title={t('Clear catalog link')}
           disabled={disabled}
           onPress={() => onChange('')}
         />
@@ -130,6 +133,7 @@ function Editor({
   api: Request;
   disabled: boolean;
 }) {
+  const { t } = useLanguage();
   return (
     <View style={s.stack}>
       <PrescriptionScan
@@ -151,7 +155,7 @@ function Editor({
         <View key={f.name} style={s.field}>
           {f.kind === 'medicine' ? (
             <>
-              <Text style={s.label}>{f.label}</Text>
+              <Text style={s.label}>{t(f.label)}</Text>
               <MedicinePicker
                 value={value.medicineId}
                 disabled={disabled}
@@ -159,9 +163,22 @@ function Editor({
                 api={api}
               />
             </>
+          ) : f.kind === 'date' ? (
+            <DateTimeField
+              label={t(f.label)}
+              value={value[f.name]}
+              disabled={disabled}
+              onChange={(v) => onChange({ ...value, [f.name]: v })}
+            />
+          ) : f.kind === 'times' ? (
+            <DailyTimePicker
+              value={value[f.name]}
+              disabled={disabled}
+              onChange={(v) => onChange({ ...value, [f.name]: v })}
+            />
           ) : (
             <Field
-              label={f.label}
+              label={t(f.label)}
               value={value[f.name]}
               disabled={disabled}
               onChange={(v) => onChange({ ...value, [f.name]: v })}
@@ -170,11 +187,11 @@ function Editor({
           {checked && (
             <View style={s.row}>
               <Text style={[s.muted, { flex: 1 }]}>
-                I reviewed {f.label.toLowerCase()}
-                {!value[f.name] ? ' (unknown)' : ''}
+                {t('I reviewed')} {t(f.label)}
+                {!value[f.name] ? t(' (unknown)') : ''}
               </Text>
               <Switch
-                accessibilityLabel={`Reviewed ${f.label}`}
+                accessibilityLabel={`${t('I reviewed')} ${t(f.label)}`}
                 value={!!checked[f.name]}
                 disabled={disabled}
                 onValueChange={(v) => onCheck?.(f.name, v)}
@@ -204,6 +221,7 @@ function LineReview({
   reject(): void;
   onDirty(): void;
 }) {
+  const { t } = useLanguage();
   const [value, setValue] = useState(() => inputValues(line)),
     [checked, setChecked] = useState<Record<string, boolean>>(() =>
       Object.fromEntries(line.fields.map((f) => [f.fieldName, f.confirmed])),
@@ -213,16 +231,16 @@ function LineReview({
     return (
       <View style={s.card}>
         <Text style={s.heading}>
-          {line.medicine?.name ?? line.extractedName ?? 'Medicine'}
+          {line.medicine?.name ?? line.extractedName ?? t('Medicine')}
         </Text>
-        <Text style={s.badge}>{line.confirmationStatus}</Text>
+        <Text style={s.badge}>{t(line.confirmationStatus)}</Text>
         {fields.map((f) => (
           <View key={f.name}>
-            <Text style={s.label}>{f.label}</Text>
+            <Text style={s.label}>{t(f.label)}</Text>
             <Text style={s.muted}>
               {f.name === 'medicineId'
-                ? (line.medicine?.name ?? 'Unknown')
-                : value[f.name] || 'Unknown'}
+                ? (line.medicine?.name ?? t('Unknown'))
+                : value[f.name] || t('Unknown')}
             </Text>
           </View>
         ))}
@@ -231,11 +249,12 @@ function LineReview({
   return (
     <View style={s.card}>
       <Text style={s.heading}>
-        {line.medicine?.name ?? line.extractedName ?? 'Medicine'}
+        {line.medicine?.name ?? line.extractedName ?? t('Medicine')}
       </Text>
       <Text style={s.muted}>
-        Review each value, including unknowns. Editing clears the field’s review
-        check. Save each medicine’s review.
+        {t(
+          'Review each value, including unknowns. Editing clears the field’s review check. Save each medicine’s review.',
+        )}
       </Text>
       <Editor
         value={value}
@@ -265,7 +284,7 @@ function LineReview({
         </Text>
       )}
       <Button
-        title="Save this medicine review"
+        title={t('Save this medicine review')}
         disabled={busy}
         onPress={() => {
           try {
@@ -278,7 +297,7 @@ function LineReview({
         }}
       />
       <Button
-        title="Reject this medicine line"
+        title={t('Reject this medicine line')}
         disabled={busy}
         onPress={reject}
       />
@@ -289,11 +308,14 @@ export function Prescriptions({
   report,
   revision,
   onViewChange,
+  onBackChange,
 }: {
   report(e: unknown): void;
   revision: number;
   onViewChange(): void;
+  onBackChange(handler: (() => boolean) | null): void;
 }) {
+  const { t } = useLanguage();
   const { client } = useSession();
   const api: Request = useCallback(
     <T,>(path: string, method = 'GET', body?: unknown) =>
@@ -313,6 +335,25 @@ export function Prescriptions({
   useEffect(() => {
     onViewChange();
   }, [viewKey, onViewChange]);
+  const backToList = useCallback(() => {
+    if (r.busy) return true;
+    if (!rx && !r.creating) return false;
+    if (r.creating || hasEdits) {
+      Alert.alert(
+        t('Leave unsaved changes?'),
+        t('Unsaved entries will be lost.'),
+        [
+          { text: t('Keep editing'), style: 'cancel' },
+          { text: t('Leave'), onPress: r.list },
+        ],
+      );
+    } else r.list();
+    return true;
+  }, [r.busy, r.creating, r.list, rx, hasEdits]);
+  useEffect(() => {
+    onBackChange(backToList);
+    return () => onBackChange(null);
+  }, [backToList, onBackChange]);
   const editable = rx?.status === 'DRAFT' && !r.blocked;
   const confirm = (
     title: string,
@@ -321,8 +362,8 @@ export function Prescriptions({
     method = 'PATCH',
   ) =>
     Alert.alert(title, message, [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Confirm', onPress: () => void r.mutate(body, method) },
+      { text: t('Cancel'), style: 'cancel' },
+      { text: t('Confirm'), onPress: () => void r.mutate(body, method) },
     ]);
   async function attach() {
     if (!rx) return;
@@ -370,36 +411,30 @@ export function Prescriptions({
     <View style={s.stack}>
       {!!r.error && (
         <Text accessibilityRole="alert" style={s.error}>
-          {r.error}
+          {t(r.error)}
         </Text>
       )}
       {!!r.notice && (
         <Text accessibilityLiveRegion="polite" style={s.muted}>
-          {r.notice}
+          {t(r.notice)}
         </Text>
       )}
       {(rx || r.creating) && (
         <Button
-          title="Back to prescriptions"
+          title={t('Back to prescriptions')}
           disabled={r.busy}
-          onPress={() =>
-            r.creating
-              ? Alert.alert('Leave draft?', 'Unsaved entries will be lost.', [
-                  { text: 'Keep editing', style: 'cancel' },
-                  { text: 'Leave', onPress: r.list },
-                ])
-              : r.list()
-          }
+          onPress={backToList}
         />
       )}
       {!rx && !r.creating && (
         <>
           <Text style={s.muted}>
-            Save prescription details, attach images, and review what you
-            entered.
+            {t(
+              'Save prescription details, attach images, and review what you entered.',
+            )}
           </Text>
           <Button
-            title="New prescription"
+            title={t('New prescription')}
             disabled={r.busy}
             onPress={() => {
               setLines([blank()]);
@@ -425,7 +460,7 @@ export function Prescriptions({
                   r.setFilter(status);
                 }}
               >
-                <Text>{status || 'Current'}</Text>
+                <Text>{t(status || 'Current')}</Text>
               </Pressable>
             ))}
           </View>
@@ -438,22 +473,26 @@ export function Prescriptions({
               onPress={() => void r.open(row.id)}
             >
               <Text style={s.heading}>
-                Prescription ·{' '}
+                {t('Prescription ·')}{' '}
                 {row.prescriptionDate ?? row.createdAt.slice(0, 10)}
               </Text>
-              <Text style={s.badge}>{row.status}</Text>
-              <Text style={s.muted}>{row.medicationCount} medicine lines</Text>
+              <Text style={s.badge}>{t(row.status)}</Text>
+              <Text style={s.muted}>
+                {row.medicationCount} {t('medicine lines')}
+              </Text>
             </Pressable>
           ))}
-          {r.loading && <Text style={s.muted}>Loading prescriptions…</Text>}
+          {r.loading && (
+            <Text style={s.muted}>{t('Loading prescriptions…')}</Text>
+          )}
           {!r.loading && !r.rows.length && !r.error && (
             <Text style={s.muted}>
-              No prescriptions yet. Create a manual draft to get started.
+              {t('No prescriptions yet. Create a manual draft to get started.')}
             </Text>
           )}
           <View style={s.row}>
             <Button
-              title="Previous"
+              title={t('Previous')}
               disabled={r.page <= 1 || r.busy}
               onPress={() => r.setPage(r.page - 1)}
             />
@@ -461,7 +500,7 @@ export function Prescriptions({
               {r.page} / {Math.max(1, r.pages)}
             </Text>
             <Button
-              title="Next"
+              title={t('Next')}
               disabled={r.page >= r.pages || r.busy}
               onPress={() => r.setPage(r.page + 1)}
             />
@@ -470,7 +509,7 @@ export function Prescriptions({
       )}
       {r.creating && (
         <>
-          <Text style={s.heading}>New prescription</Text>
+          <Text style={s.heading}>{t('New prescription')}</Text>
           <PrescriptionScan
             disabled={r.busy || r.blocked}
             report={report}
@@ -481,24 +520,27 @@ export function Prescriptions({
             }}
           />
           <Text style={s.muted}>
-            Review or enter the prescription details below. Unknown values stay
-            blank. Saving creates a draft, never a confirmed treatment.
+            {t(
+              'Review or enter the prescription details below. Unknown values stay blank. Saving creates a draft, never a confirmed treatment.',
+            )}
           </Text>
-          <Field
-            label="Prescription date (YYYY-MM-DD, optional)"
+          <DateTimeField
+            label={t('Prescription date (optional)')}
             value={date}
             onChange={setDate}
             disabled={r.busy || r.blocked}
           />
-          <Field
-            label="Valid until (YYYY-MM-DD, optional)"
+          <DateTimeField
+            label={t('Valid until (optional)')}
             value={until}
             onChange={setUntil}
             disabled={r.busy || r.blocked}
           />
           {lines.map((line, index) => (
             <View style={s.card} key={index}>
-              <Text style={s.heading}>Medicine {index + 1}</Text>
+              <Text style={s.heading}>
+                {t('Medicine')} {index + 1}
+              </Text>
               <Editor
                 value={line}
                 onChange={(v) =>
@@ -509,7 +551,7 @@ export function Prescriptions({
               />
               {lines.length > 1 && (
                 <Button
-                  title={`Remove medicine ${index + 1}`}
+                  title={t('Remove medicine {number}', { number: index + 1 })}
                   disabled={r.busy || r.blocked}
                   onPress={() => setLines(lines.filter((_, i) => i !== index))}
                 />
@@ -517,12 +559,12 @@ export function Prescriptions({
             </View>
           ))}
           <Button
-            title="Add another medicine"
+            title={t('Add another medicine')}
             disabled={r.busy || r.blocked || lines.length >= 20}
             onPress={() => setLines([...lines, blank()])}
           />
           <Button
-            title="Save draft"
+            title={t('Save draft')}
             disabled={r.busy || r.blocked}
             onPress={() => {
               try {
@@ -539,21 +581,23 @@ export function Prescriptions({
         <>
           <View style={s.card}>
             <Text style={s.heading}>
-              Prescription · {rx.prescriptionDate ?? rx.createdAt.slice(0, 10)}
+              {t('Prescription ·')}
+              {rx.prescriptionDate ?? rx.createdAt.slice(0, 10)}
             </Text>
-            <Text style={s.badge}>{rx.status}</Text>
+            <Text style={s.badge}>{t(rx.status)}</Text>
             <Text style={s.muted}>
-              Valid until: {rx.validUntil ?? 'Not recorded'}
+              {t('Valid until:')}
+              {rx.validUntil ?? t('Not recorded')}
             </Text>
             <Button
-              title="Reload prescription"
+              title={t('Reload prescription')}
               disabled={r.busy}
               onPress={() =>
                 Alert.alert(
-                  'Reload saved values?',
-                  'Unsaved edits will be discarded.',
+                  t('Reload saved values?'),
+                  t('Unsaved edits will be discarded.'),
                   [
-                    { text: 'Cancel', style: 'cancel' },
+                    { text: t('Cancel'), style: 'cancel' },
                     {
                       text: 'Reload',
                       onPress: () =>
@@ -565,16 +609,16 @@ export function Prescriptions({
             />
           </View>
           <View style={s.card}>
-            <Text style={s.heading}>Original images</Text>
+            <Text style={s.heading}>{t('Original images')}</Text>
             <Text style={s.muted}>
-              JPEG or PNG, up to 5 MiB and 20 million pixels per page. No text
-              extraction. Original images may include location metadata; remove
-              unwanted metadata before selecting a file.
+              {t(
+                'JPEG or PNG, up to 5 MiB and 20 million pixels per page. No text extraction. Original images may include location metadata; remove unwanted metadata before selecting a file.',
+              )}
             </Text>
             {rx.documents.map((d) => (
               <Button
                 key={d.id}
-                title={`Open page ${d.pageNumber}`}
+                title={t('Open page {number}', { number: d.pageNumber })}
                 disabled={r.busy}
                 onPress={() =>
                   void r.run(async () => {
@@ -590,11 +634,13 @@ export function Prescriptions({
               />
             ))}
             {!rx.documents.length && (
-              <Text style={s.muted}>No images attached.</Text>
+              <Text style={s.muted}>{t('No images attached.')}</Text>
             )}
             {editable && rx.documents.length < 20 && (
               <Button
-                title={`Attach image page ${nextPage(rx)}`}
+                title={t('Attach image page {number}', {
+                  number: nextPage(rx),
+                })}
                 disabled={r.busy}
                 onPress={() => void attach()}
               />
@@ -616,8 +662,10 @@ export function Prescriptions({
               save={(body) => void r.mutate(body)}
               reject={() =>
                 confirm(
-                  'Reject this medicine?',
-                  'It remains in history and cannot be restored through this workflow.',
+                  t('Reject this medicine?'),
+                  t(
+                    'It remains in history and cannot be restored through this workflow.',
+                  ),
                   { rejectedMedicationIds: [line.id] },
                 )
               }
@@ -625,26 +673,31 @@ export function Prescriptions({
           ))}
           {editable && (
             <View style={s.card}>
-              <Text style={s.heading}>Confirm reviewed prescription</Text>
+              <Text style={s.heading}>
+                {t('Confirm reviewed prescription')}
+              </Text>
               <Text style={s.muted}>
-                This confirms your entered information. It is not professional
-                verification and does not create or activate a treatment.
+                {t(
+                  'This confirms your entered information. It is not professional verification and does not create or activate a treatment.',
+                )}
               </Text>
               {hasEdits && (
                 <Text style={s.muted}>
-                  Save your edited medicine reviews before confirming.
+                  {t('Save your edited medicine reviews before confirming.')}
                 </Text>
               )}
               {!!confirmationProblem(rx) && (
                 <Text style={s.muted}>{confirmationProblem(rx)}</Text>
               )}
               <Button
-                title="Confirm prescription"
+                title={t('Confirm prescription')}
                 disabled={r.busy || hasEdits || !!confirmationProblem(rx)}
                 onPress={() =>
                   confirm(
-                    'Confirm prescription?',
-                    'The saved review will be finalized and cannot be edited. No treatment is started.',
+                    t('Confirm prescription?'),
+                    t(
+                      'The saved review will be finalized and cannot be edited. No treatment is started.',
+                    ),
                     confirmationBody(rx),
                   )
                 }
@@ -653,12 +706,14 @@ export function Prescriptions({
           )}
           {rx.status !== 'ARCHIVED' && (
             <Button
-              title="Archive prescription"
+              title={t('Archive prescription')}
               disabled={r.busy || r.blocked}
               onPress={() =>
                 confirm(
-                  'Archive prescription?',
-                  'Documents and history are preserved. Restoring is not available.',
+                  t('Archive prescription?'),
+                  t(
+                    'Documents and history are preserved. Restoring is not available.',
+                  ),
                   {},
                   'DELETE',
                 )

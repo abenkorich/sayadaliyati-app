@@ -1,9 +1,10 @@
+import { AppText as Text, useLanguage, LanguageSelector } from './language';
 import React, { useRef, useState } from 'react';
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { landingCopy as t } from './landing-copy';
+import { copy } from './landing-copy';
 // Metro resolves bundled images through a static require.
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const familyIcon = require('../assets/icon-family.png');
@@ -17,6 +18,9 @@ export function Landing({
   onStart(): void;
   onSignIn(): void;
 }) {
+  const { t } = useLanguage();
+  const { language } = useLanguage();
+  const content = copy[language];
   const scroll = useRef<ScrollView>(null);
   const [featuresY, setFeaturesY] = useState(0);
   const [question, setQuestion] = useState<number | null>(null);
@@ -33,33 +37,36 @@ export function Landing({
             accessible={false}
           />
           <View style={{ flex: 1 }}>
-            <Text style={s.brand}>{t.brand}</Text>
-            <Text style={s.tagline}>{t.tagline}</Text>
+            <Text style={s.brand}>{content.brand}</Text>
+            <Text style={s.tagline}>{content.tagline}</Text>
           </View>
           <Pressable
             accessibilityRole="button"
             style={s.login}
             onPress={onSignIn}
           >
-            <Text style={s.link}>{signedIn ? 'Open app' : 'Sign in'}</Text>
+            <Text style={s.link}>
+              {signedIn ? t('Open app') : t('Sign in')}
+            </Text>
             <Ionicons name="arrow-forward" size={18} color={teal} />
           </Pressable>
         </View>
+        <LanguageSelector />
         <View style={s.hero}>
-          <Text style={s.eyebrow}>{t.eyebrow}</Text>
+          <Text style={s.eyebrow}>{content.eyebrow}</Text>
           <Text accessibilityRole="header" style={s.title}>
-            {t.title}
+            {content.title}
             {'\n'}
-            <Text style={s.accent}>{t.accent}</Text>
+            <Text style={s.accent}>{content.accent}</Text>
           </Text>
-          <Text style={s.description}>{t.description}</Text>
+          <Text style={s.description}>{content.description}</Text>
           <Pressable
             accessibilityRole="button"
             style={s.button}
             onPress={onStart}
           >
             <Text style={s.buttonText}>
-              {signedIn ? 'Continue to my pharmacy' : t.cta}
+              {signedIn ? t('Continue to my pharmacy') : content.cta}
             </Text>
             <Ionicons name="arrow-forward" size={20} color="#fff" />
           </Pressable>
@@ -70,11 +77,11 @@ export function Landing({
               scroll.current?.scrollTo({ y: featuresY, animated: true })
             }
           >
-            <Text style={s.link}>{t.explore}</Text>
+            <Text style={s.link}>{content.explore}</Text>
             <Ionicons name="arrow-down" size={18} color={teal} />
           </Pressable>
           <View style={{ gap: 10 }}>
-            {t.reassurance.map((text) => (
+            {content.reassurance.map((text) => (
               <View key={text} style={s.line}>
                 <Ionicons name="checkmark" size={18} color={teal} />
                 <Text style={s.small}>{text}</Text>
@@ -86,21 +93,21 @@ export function Landing({
           <View style={s.preview}>
             <View style={s.line}>
               <Ionicons name="sunny-outline" size={20} color={teal} />
-              <Text style={s.small}>{t.previewHello}</Text>
+              <Text style={s.small}>{content.previewHello}</Text>
             </View>
-            <Text style={s.sectionTitle}>{t.previewTitle}</Text>
+            <Text style={s.sectionTitle}>{content.previewTitle}</Text>
             <View style={s.banner}>
               <Ionicons name="leaf-outline" size={26} color={teal} />
-              <Text style={[s.link, { flex: 1 }]}>{t.previewStock}</Text>
+              <Text style={[s.link, { flex: 1 }]}>{content.previewStock}</Text>
             </View>
-            {t.previewMedicine.map((name) => (
+            {content.previewMedicine.map((name) => (
               <View key={name} style={s.medicine}>
                 <View style={s.icon}>
                   <Ionicons name="medkit-outline" size={22} color={teal} />
                 </View>
                 <View style={{ flex: 1, gap: 4 }}>
                   <Text style={s.heading}>{name}</Text>
-                  <Text style={s.small}>{t.previewStatus}</Text>
+                  <Text style={s.small}>{content.previewStatus}</Text>
                 </View>
                 <Ionicons
                   name="checkmark-circle-outline"
@@ -112,28 +119,28 @@ export function Landing({
             <View style={s.line}>
               <Ionicons name="calendar-outline" size={24} color={teal} />
               <View style={{ flex: 1, gap: 5 }}>
-                <Text style={s.heading}>{t.previewRoutine}</Text>
-                <Text style={s.small}>{t.previewNote}</Text>
+                <Text style={s.heading}>{content.previewRoutine}</Text>
+                <Text style={s.small}>{content.previewNote}</Text>
               </View>
             </View>
           </View>
           <Text style={s.caption}>
-            Illustrative app preview · example content
+            {t('Illustrative app preview · example content')}
           </Text>
-          <Text style={s.note}>{t.floatingTitle}</Text>
+          <Text style={s.note}>{content.floatingTitle}</Text>
         </View>
         <View
           onLayout={(event) => setFeaturesY(event.nativeEvent.layout.y)}
           style={s.section}
         >
-          <Text style={s.eyebrow}>{t.brand.toUpperCase()}</Text>
+          <Text style={s.eyebrow}>{content.brand.toUpperCase()}</Text>
           <Text accessibilityRole="header" style={s.sectionTitle}>
-            {t.promise}
+            {content.promise}
             {'\n'}
-            <Text style={s.accent}>{t.promiseAccent}</Text>
+            <Text style={s.accent}>{content.promiseAccent}</Text>
           </Text>
-          <Text style={s.description}>{t.promiseText}</Text>
-          {t.features.map((feature, index) => (
+          <Text style={s.description}>{content.promiseText}</Text>
+          {content.features.map((feature, index) => (
             <View key={feature.tag} style={s.card}>
               <View
                 style={[
@@ -162,12 +169,12 @@ export function Landing({
           ))}
         </View>
         <View style={s.section}>
-          <Text style={s.eyebrow}>{t.stepsEyebrow}</Text>
+          <Text style={s.eyebrow}>{content.stepsEyebrow}</Text>
           <Text accessibilityRole="header" style={s.sectionTitle}>
-            {t.stepsTitle}
+            {content.stepsTitle}
           </Text>
-          <Text style={s.body}>{t.stepsText}</Text>
-          {t.steps.map((step, index) => (
+          <Text style={s.body}>{content.stepsText}</Text>
+          {content.steps.map((step, index) => (
             <View key={step.title} style={s.step}>
               <Text style={s.number}>{String(index + 1).padStart(2, '0')}</Text>
               <View style={{ flex: 1, gap: 8 }}>
@@ -179,12 +186,12 @@ export function Landing({
         </View>
         <View style={s.privacy}>
           <Ionicons name="shield-checkmark-outline" size={42} color={teal} />
-          <Text style={s.eyebrow}>{t.privacyEyebrow}</Text>
+          <Text style={s.eyebrow}>{content.privacyEyebrow}</Text>
           <Text accessibilityRole="header" style={s.sectionTitle}>
-            {t.privacyTitle}
+            {content.privacyTitle}
           </Text>
-          <Text style={s.body}>{t.privacyBody}</Text>
-          {t.privacyPoints.map((point) => (
+          <Text style={s.body}>{content.privacyBody}</Text>
+          {content.privacyPoints.map((point) => (
             <View key={point} style={s.line}>
               <Ionicons name="checkmark" size={20} color={teal} />
               <Text style={[s.body, { flex: 1 }]}>{point}</Text>
@@ -192,12 +199,12 @@ export function Landing({
           ))}
         </View>
         <View style={s.section}>
-          <Text style={s.eyebrow}>{t.faqEyebrow}</Text>
+          <Text style={s.eyebrow}>{content.faqEyebrow}</Text>
           <Text accessibilityRole="header" style={s.sectionTitle}>
-            {t.faqTitle}
+            {content.faqTitle}
           </Text>
-          {t.faqs
-            .filter((f) => f.question !== 'Which languages are available?')
+          {content.faqs
+            .filter((_, index) => index !== content.faqs.length - 1)
             .map((faq, index) => (
               <View key={faq.question} style={s.faq}>
                 <Pressable
@@ -220,22 +227,24 @@ export function Landing({
         <View style={s.final}>
           <Ionicons name="leaf-outline" size={38} color={teal} />
           <Text accessibilityRole="header" style={s.sectionTitle}>
-            {t.finalTitle}
+            {content.finalTitle}
           </Text>
-          <Text style={s.body}>{t.finalText}</Text>
+          <Text style={s.body}>{content.finalText}</Text>
           <Pressable
             accessibilityRole="button"
             style={s.button}
             onPress={onStart}
           >
             <Text style={s.buttonText}>
-              {signedIn ? 'Continue to my pharmacy' : 'Create my account'}
+              {signedIn ? t('Continue to my pharmacy') : t('Create my account')}
             </Text>
             <Ionicons name="arrow-forward" size={20} color="#fff" />
           </Pressable>
-          <Text style={s.small}>App currently available in English.</Text>
+          <Text style={s.small}>
+            {t('Available in English, French and Arabic.')}
+          </Text>
         </View>
-        <Text style={s.caption}>{t.footer}</Text>
+        <Text style={s.caption}>{content.footer}</Text>
       </ScrollView>
     </SafeAreaView>
   );

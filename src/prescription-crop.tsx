@@ -1,3 +1,4 @@
+import { AppText as Text, useLanguage } from './language';
 import React, { useRef, useState } from 'react';
 import {
   Image,
@@ -6,7 +7,6 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Text,
   View,
   useWindowDimensions,
 } from 'react-native';
@@ -23,6 +23,7 @@ export function PrescriptionCrop({
   onCancel(): void;
   onDone(image: { uri: string; mimeType: string }): void;
 }) {
+  const { t } = useLanguage();
   const window = useWindowDimensions();
   const scale = Math.min(
     (window.width - 48) / source.width,
@@ -65,8 +66,8 @@ export function PrescriptionCrop({
         accessible
         accessibilityLabel={
           corner === 'start'
-            ? 'Top left crop handle'
-            : 'Bottom right crop handle'
+            ? t('Top left crop handle')
+            : t('Bottom right crop handle')
         }
         style={[
           s.handle,
@@ -98,7 +99,9 @@ export function PrescriptionCrop({
     } catch {
       if (mounted.current)
         setError(
-          'The crop could not be created. Adjust the selection or choose another photo.',
+          t(
+            'The crop could not be created. Adjust the selection or choose another photo.',
+          ),
         );
     } finally {
       lock.current = false;
@@ -115,11 +118,11 @@ export function PrescriptionCrop({
     >
       <SafeAreaView style={s.screen}>
         <ScrollView contentContainerStyle={s.content}>
-          <Text style={s.title}>Select medicines only</Text>
+          <Text style={s.title}>{t('Select medicines only')}</Text>
           <Text style={s.text}>
-            The starting box is a suggested area, not automatic detection. Drag
-            its corners or adjust the edges below. Exclude every name, address,
-            ID, barcode and patient detail.
+            {t(
+              'The starting box is a suggested area, not automatic detection. Drag its corners or adjust the edges below. Exclude every name, address, ID, barcode and patient detail.',
+            )}
           </Text>
           <View style={{ alignItems: 'center', padding: 12 }}>
             <View style={{ width, height }}>
@@ -188,13 +191,14 @@ export function PrescriptionCrop({
             </View>
           </View>
           <Text style={s.text}>
-            Only the selected area will appear in the next preview. Nothing is
-            uploaded yet.
+            {t(
+              'Only the selected area will appear in the next preview. Nothing is uploaded yet.',
+            )}
           </Text>
           {(['top', 'bottom', 'left', 'right'] as const).map((edge) => (
             <View key={edge} style={s.row}>
               <Text style={[s.text, { flex: 1, textTransform: 'capitalize' }]}>
-                {edge} edge
+                {edge} {t('edge')}
               </Text>
               {[-1, 1].map((direction) => (
                 <Pressable
@@ -235,7 +239,9 @@ export function PrescriptionCrop({
             onPress={() => void apply()}
           >
             <Text style={s.buttonText}>
-              {busy ? 'Creating crop…' : 'Use this crop and review privacy'}
+              {busy
+                ? t('Creating crop…')
+                : t('Use this crop and review privacy')}
             </Text>
           </Pressable>
           <Pressable
@@ -244,7 +250,7 @@ export function PrescriptionCrop({
             style={s.smallButton}
             onPress={onCancel}
           >
-            <Text>Cancel — keep image on device</Text>
+            <Text>{t('Cancel — keep image on device')}</Text>
           </Pressable>
         </ScrollView>
       </SafeAreaView>
