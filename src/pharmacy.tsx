@@ -8,6 +8,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { PrescriptionScan } from './prescription-scan';
 import { MedicineImage } from './medicine-search';
 import { useSession } from './session';
+import { suggestedStockUnit, type StockPresentation } from './stock-unit';
 import { units, stockError, localDate } from './stock';
 
 type Item = {
@@ -384,11 +385,13 @@ export function PharmacyScreen({
 export function AddStock({
   initialScan,
   medicineId,
+  medicine,
   save,
   busy,
 }: {
   initialScan?: ScanPreview | null;
   medicineId: string;
+  medicine: StockPresentation;
   save(body: Record<string, unknown>): void;
   busy: boolean;
 }) {
@@ -396,11 +399,14 @@ export function AddStock({
   const [quantity, setQuantity] = useState(
     initialScan?.packageInfo?.quantity ?? '',
   );
-  const [unit, setUnit] = useState(initialScan?.packageInfo?.unit ?? '');
+  const [unit, setUnit] = useState(
+    () => initialScan?.packageInfo?.unit || suggestedStockUnit(medicine),
+  );
   const [expiry, setExpiry] = useState(
     initialScan?.packageInfo?.expiryDate ?? '',
   );
   const [error, setError] = useState('');
+  const [editing, setEditing] = useState<string | null>(null);
   return (
     <View style={{ gap: 12 }}>
       <Text style={s.section}>{t('Add to My Pharmacy')}</Text>
@@ -421,7 +427,7 @@ export function AddStock({
         onApply={(preview) => {
           const pack = preview.packageInfo;
           setQuantity(pack?.quantity ?? '');
-          setUnit(pack?.unit ?? '');
+          setUnit(pack?.unit || suggestedStockUnit(medicine));
           setExpiry(pack?.expiryDate ?? '');
           setError(
             t(
@@ -436,35 +442,90 @@ export function AddStock({
           'Record the quantity you have. This does not change your treatment or dose.',
         )}
       </Text>
-      <Text style={s.heading}>{t('Quantity')}</Text>
-      <TextInput
-        accessibilityLabel={t('Stock quantity')}
-        keyboardType="decimal-pad"
-        value={quantity}
-        onChangeText={setQuantity}
-        placeholder={t('e.g. 20')}
-        style={s.input}
-      />
-      <Text style={s.heading}>{t('Unit')}</Text>
-      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
-        {units.map((u) => (
-          <Pressable
-            key={u}
-            accessibilityRole="button"
-            accessibilityState={{ selected: unit === u }}
-            onPress={() => setUnit(u)}
-            style={[s.chip, unit === u && { backgroundColor: palette.soft }]}
-          >
-            <Text>{t(u.toLowerCase())}</Text>
-          </Pressable>
+      <View style={s.card}>
+        <Text style={s.section}>{t('Medicine summary')}</Text>
+        {(
+          [
+            ['quantity', t('Quantity'), quantity || t('Not recorded')],
+            ['unit', t('Unit'), t(unit.toLowerCase())],
+            [
+              'expiry',
+              t('Expiry date (optional)'),
+              expiry || t('Not recorded'),
+            ],
+          ] as const
+        ).map(([key, label, value]) => (
+          <View key={key}>
+            <Pressable
+              accessibilityRole="button"
+              disabled={busy}
+              onPress={() => setEditing(editing === key ? null : key)}
+              style={[s.between, { minHeight: 48 }]}
+            >
+              <View style={{ flex: 1 }}>
+                <Text style={s.heading}>{label}</Text>
+                <Text style={s.muted}>{value}</Text>
+              </View>
+              <Text style={{ color: palette.teal }}>
+                {t(editing === key ? 'Done' : 'Edit')}
+              </Text>
+            </Pressable>
+            {editing === key && (
+              <>
+                {key === 'quantity' && (
+                  <>
+                    {' '}
+                    <Text style={s.heading}>{t('Quantity')}</Text>
+                    <TextInput
+                      accessibilityLabel={t('Stock quantity')}
+                      keyboardType="decimal-pad"
+                      value={quantity}
+                      onChangeText={setQuantity}
+                      placeholder={t('e.g. 20')}
+                      style={s.input}
+                    />
+                  </>
+                )}
+                {key === 'unit' && (
+                  <>
+                    {' '}
+                    <Text style={s.heading}>{t('Unit')}</Text>
+                    <View
+                      style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}
+                    >
+                      {units.map((u) => (
+                        <Pressable
+                          key={u}
+                          accessibilityRole="button"
+                          accessibilityState={{ selected: unit === u }}
+                          onPress={() => setUnit(u)}
+                          style={[
+                            s.chip,
+                            unit === u && { backgroundColor: palette.soft },
+                          ]}
+                        >
+                          <Text>{t(u.toLowerCase())}</Text>
+                        </Pressable>
+                      ))}
+                    </View>
+                  </>
+                )}
+                {key === 'expiry' && (
+                  <>
+                    {' '}
+                    <DateTimeField
+                      label={t('Expiry date (optional)')}
+                      value={expiry}
+                      onChange={setExpiry}
+                      disabled={busy}
+                    />
+                  </>
+                )}
+              </>
+            )}
+          </View>
         ))}
       </View>
-      <DateTimeField
-        label={t('Expiry date (optional)')}
-        value={expiry}
-        onChange={setExpiry}
-        disabled={busy}
-      />
       {!!error && (
         <Text accessibilityRole="alert" style={{ color: '#8C2926' }}>
           {t(error)}
@@ -478,6 +539,7 @@ export function AddStock({
           const message = stockError(quantity, unit, expiry);
           if (message) {
             setError(message);
+            setEditing(!quantity ? 'quantity' : 'expiry');
             return;
           }
           setError('');
@@ -491,7 +553,7 @@ export function AddStock({
         }}
       >
         <Text style={{ color: '#fff', fontWeight: '700', textAlign: 'center' }}>
-          {busy ? t('Saving…') : t('Add to My Pharmacy')}
+          {busy ? t('Saving…') : t('Approve and add medicine')}
         </Text>
       </Pressable>
     </View>

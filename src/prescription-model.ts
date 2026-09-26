@@ -290,3 +290,50 @@ export function uploadError(type: string, size: number) {
       ? 'Choose an image no larger than 5 MiB.'
       : null;
 }
+
+export function overallReview(rx: Prescription) {
+  const reviewed: Prescription = {
+    ...rx,
+    medications: rx.medications.map((m) => ({
+      ...m,
+      fields: m.fields.map((f) => ({ ...f, confirmed: true })),
+    })),
+  };
+  const problem = confirmationProblem(reviewed);
+  if (problem) throw new Error(problem);
+  // One medicine per request stays below the API's 100-field / 16 KiB limits.
+  return rx.medications
+    .filter((m) => m.confirmationStatus !== 'REJECTED')
+    .map((m) => ({
+      fieldReviews: m.fields.map((f) => ({
+        fieldId: f.id,
+        value: f.value,
+        confirmed: true,
+      })),
+    }));
+}
+export function ensureReviewUnchanged(
+  before: Prescription,
+  after: Prescription,
+) {
+  const snapshot = (rx: Prescription) =>
+    JSON.stringify({
+      date: rx.prescriptionDate,
+      until: rx.validUntil,
+      medications: rx.medications.map((m) => ({
+        id: m.id,
+        rejected: m.confirmationStatus === 'REJECTED',
+        values: fields.map(
+          (f) => m.fields.find((value) => value.fieldName === f.name)?.value,
+        ),
+      })),
+    });
+  if (
+    before.id !== after.id ||
+    after.status !== 'DRAFT' ||
+    snapshot(before) !== snapshot(after)
+  )
+    throw new Error(
+      'The prescription changed while approving. Reload and review the latest summary.',
+    );
+}

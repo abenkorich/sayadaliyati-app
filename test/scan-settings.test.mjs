@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { scanSettingsError } from '../.test-dist/scan-errors.js';
+import {
+  scanSettingsError,
+  scanExtractionError,
+} from '../.test-dist/scan-errors.js';
 test('missing scan settings routes explain an API update instead of suggesting a connection retry', () => {
   for (const status of [404, 405])
     assert.match(scanSettingsError({ status }), /API needs an update/);
@@ -18,4 +21,27 @@ test('scan settings distinguish session, role, service and connection failures w
     scanSettingsError(new Error('private server details')),
     /private/,
   );
+});
+
+test('extraction errors distinguish rejected uploads from provider, network and account failures', () => {
+  assert.match(
+    scanExtractionError({ status: 413, code: 'REQUEST_FAILED' }),
+    /upload limit/,
+  );
+  assert.match(scanExtractionError({ status: 400 }), /before extraction/);
+  assert.match(
+    scanExtractionError({ status: 502, code: 'PRESCRIPTION_SCAN_FAILED' }),
+    /AI service/,
+  );
+  assert.match(scanExtractionError({ status: 401 }), /Sign in again/);
+  assert.match(scanExtractionError({ status: 404 }), /API needs an update/);
+  assert.match(
+    scanExtractionError(new TypeError('private detail')),
+    /connection/,
+  );
+  assert.match(
+    scanExtractionError({ status: 200, code: 'INVALID_RESPONSE' }),
+    /unreadable/,
+  );
+  assert.doesNotMatch(scanExtractionError({ status: 500 }), /clearer crop/);
 });

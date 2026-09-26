@@ -13,6 +13,7 @@
     "src/scan-errors.ts",
     "src/registration.ts",
     "src/stock.ts",
+    "src/stock-unit.ts",
     "src/prescription-model.ts",
     "src/crop.ts",
     "src/scan-preview.ts",

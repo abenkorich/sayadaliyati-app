@@ -80,7 +80,16 @@ export class ApiClient {
           : {}),
         signal: controller.signal,
       });
-      const result = await response.json();
+      let result;
+      try {
+        result = await response.json();
+      } catch {
+        // Proxies can return HTML for upload limits or outages. Preserve status.
+        throw new ClientError(
+          response.status,
+          response.ok ? 'INVALID_RESPONSE' : 'REQUEST_FAILED',
+        );
+      }
       if (!response.ok)
         throw new ClientError(
           response.status,

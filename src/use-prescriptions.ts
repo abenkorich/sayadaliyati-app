@@ -1,6 +1,12 @@
+import { originalUpload } from './original-image';
+import type { OriginalImage } from './scan-preview';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   prescriptionError,
+  overallReview,
+  ensureReviewUnchanged,
+  confirmationBody,
+  nextPage,
   type Prescription,
   type Request,
 } from './prescription-model';
@@ -101,10 +107,12 @@ export function usePrescriptions(
     setError('');
     setReload((n) => n + 1);
   }
-  async function create(body: unknown) {
+  async function create(body: unknown, originals: OriginalImage[] = []) {
     await run(async () => {
+      let saved: Prescription;
       try {
         const r = await api<Prescription>('/me/prescriptions', 'POST', body);
+        saved = r.data;
         if (mounted.current) {
           setDetail(r.data);
           setCreating(false);
@@ -123,6 +131,34 @@ export function usePrescriptions(
           );
         }
         throw e;
+      }
+      if (originals.length) {
+        try {
+          let page = nextPage(saved);
+          for (const image of originals)
+            await api(
+              `/me/prescriptions/${saved.id}/documents`,
+              'POST',
+              originalUpload(image, page++),
+            );
+          const fresh = await api<Prescription>(
+            `/me/prescriptions/${saved.id}`,
+          );
+          if (mounted.current) {
+            setDetail(fresh.data);
+            setNotice(
+              'Draft saved with original images. Review the summary before approving.',
+            );
+          }
+        } catch (error) {
+          if (mounted.current) {
+            setBlocked(true);
+            setNotice(
+              'Draft saved, but an original image could not be attached. Reload to check saved pages before attaching it again.',
+            );
+          }
+          throw error;
+        }
       }
     });
   }
@@ -166,6 +202,33 @@ export function usePrescriptions(
       }
     });
   }
+  async function approve() {
+    if (!detail || blocked) return;
+    await run(async () => {
+      const batches = overallReview(detail);
+      try {
+        for (const body of batches)
+          await api(`/me/prescriptions/${detail.id}`, 'PATCH', body);
+        const fresh = await api<Prescription>(`/me/prescriptions/${detail.id}`);
+        ensureReviewUnchanged(detail, fresh.data);
+        await api(
+          `/me/prescriptions/${detail.id}`,
+          'PATCH',
+          confirmationBody(fresh.data),
+        );
+        const result = await api<Prescription>(
+          `/me/prescriptions/${detail.id}`,
+        );
+        if (mounted.current) {
+          setDetail(result.data);
+          setNotice('Prescription approved. No treatment has been started.');
+        }
+      } catch (error) {
+        if (mounted.current) setBlocked(true);
+        throw error;
+      }
+    });
+  }
   return {
     loading,
     rows,
@@ -185,6 +248,7 @@ export function usePrescriptions(
     list,
     open,
     create,
+    approve,
     mutate,
     upload,
     run,

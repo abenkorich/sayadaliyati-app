@@ -1,5 +1,5 @@
 import { AppText as Text, useLanguage } from './language';
-import React, { useRef, useState } from 'react';
+import React, { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   Image,
   Modal,
@@ -12,8 +12,123 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ImageManipulator, SaveFormat } from 'expo-image-manipulator';
-import { cropPixels, moveCorner, suggestedCrop, type Crop } from './crop';
+import {
+  cropPixels,
+  scanImageSize,
+  moveCorner,
+  resizeCrop,
+  suggestedCrop,
+  type Crop,
+  type CropCorner,
+} from './crop';
 export type CropSource = { uri: string; width: number; height: number };
+const handleSize = 48;
+const gutter = handleSize / 2;
+const corners: CropCorner[] = [
+  'topLeft',
+  'topRight',
+  'bottomLeft',
+  'bottomRight',
+];
+const cornerLabels: Record<CropCorner, string> = {
+  topLeft: 'Top left crop handle',
+  topRight: 'Top right crop handle',
+  bottomLeft: 'Bottom left crop handle',
+  bottomRight: 'Bottom right crop handle',
+};
+function CropHandle({
+  crop,
+  corner,
+  width,
+  height,
+  busy,
+  onChange,
+  onDragging,
+}: {
+  crop: Crop;
+  corner: CropCorner;
+  width: number;
+  height: number;
+  busy: boolean;
+  onChange(crop: Crop): void;
+  onDragging(value: boolean): void;
+}) {
+  const { t } = useLanguage();
+  const latest = useRef({
+    crop,
+    corner,
+    width,
+    height,
+    busy,
+    onChange,
+    onDragging,
+  });
+  useLayoutEffect(() => {
+    latest.current = {
+      crop,
+      corner,
+      width,
+      height,
+      busy,
+      onChange,
+      onDragging,
+    };
+  }, [crop, corner, width, height, busy, onChange, onDragging]);
+  const start = useRef({ crop, width, height });
+  const pan = useMemo(
+    () =>
+      PanResponder.create({
+        onStartShouldSetPanResponder: () => !latest.current.busy,
+        onMoveShouldSetPanResponder: () => !latest.current.busy,
+        onPanResponderGrant: () => {
+          const value = latest.current;
+          start.current = {
+            crop: value.crop,
+            width: value.width,
+            height: value.height,
+          };
+          value.onDragging(true);
+        },
+        onPanResponderMove: (_, gesture) => {
+          const value = latest.current;
+          if (value.busy || gesture.numberActiveTouches !== 1) return;
+          value.onChange(
+            resizeCrop(
+              start.current.crop,
+              value.corner,
+              gesture.dx / start.current.width,
+              gesture.dy / start.current.height,
+            ),
+          );
+        },
+        onPanResponderRelease: () => latest.current.onDragging(false),
+        onPanResponderTerminate: () => latest.current.onDragging(false),
+        onPanResponderTerminationRequest: () => false,
+        onShouldBlockNativeResponder: () => true,
+      }),
+    [],
+  );
+  const left = corner === 'topLeft' || corner === 'bottomLeft';
+  const top = corner === 'topLeft' || corner === 'topRight';
+  return (
+    <View
+      {...pan.panHandlers}
+      accessible
+      accessibilityLabel={t(cornerLabels[corner])}
+      style={[
+        s.handle,
+        {
+          left:
+            gutter + (left ? crop.left : crop.right) * width - handleSize / 2,
+          top:
+            gutter + (top ? crop.top : crop.bottom) * height - handleSize / 2,
+        },
+      ]}
+    >
+      <View pointerEvents="none" style={s.dot} />
+    </View>
+  );
+}
 export function PrescriptionCrop({
   source,
   embedded = false,
@@ -27,8 +142,10 @@ export function PrescriptionCrop({
 }) {
   const { t } = useLanguage();
   const window = useWindowDimensions();
+  const [availableWidth, setAvailableWidth] = useState(window.width - 48);
+  const [dragging, setDragging] = useState(false);
   const scale = Math.min(
-    (window.width - 48) / source.width,
+    Math.max(1, availableWidth - gutter * 2) / source.width,
     (window.height * 0.46) / source.height,
   );
   const width = source.width * scale,
@@ -44,46 +161,6 @@ export function PrescriptionCrop({
       mounted.current = false;
     };
   }, []);
-  function handle(corner: 'start' | 'end') {
-    const pan = PanResponder.create({
-      onStartShouldSetPanResponder: () => !busy,
-      onMoveShouldSetPanResponder: () => !busy,
-      onPanResponderGrant: () => {
-        start.current = crop;
-      },
-      onPanResponderMove: (_, gesture) =>
-        setCrop(
-          moveCorner(
-            start.current,
-            corner,
-            gesture.dx / width,
-            gesture.dy / height,
-          ),
-        ),
-      onPanResponderTerminationRequest: () => false,
-    });
-    return (
-      <View
-        {...pan.panHandlers}
-        accessible
-        accessibilityLabel={
-          corner === 'start'
-            ? t('Top left crop handle')
-            : t('Bottom right crop handle')
-        }
-        style={[
-          s.handle,
-          {
-            left: (corner === 'start' ? crop.left : crop.right) * width - 22,
-            top: (corner === 'start' ? crop.top : crop.bottom) * height - 22,
-          },
-        ]}
-      >
-        <View style={s.dot} />
-      </View>
-    );
-  }
-  const start = useRef(crop);
   async function apply() {
     if (lock.current) return;
     lock.current = true;
@@ -91,11 +168,13 @@ export function PrescriptionCrop({
     setError('');
     try {
       const context = ImageManipulator.manipulate(source.uri);
-      context.crop(cropPixels(crop, source.width, source.height));
+      const pixels = cropPixels(crop, source.width, source.height);
+      context.crop(pixels);
+      context.resize(scanImageSize(pixels.width, pixels.height));
       const rendered = await context.renderAsync();
       const saved = await rendered.saveAsync({
         format: SaveFormat.JPEG,
-        compress: 0.9,
+        compress: 0.85,
       });
       if (mounted.current) onDone({ uri: saved.uri, mimeType: 'image/jpeg' });
     } catch {
@@ -112,77 +191,105 @@ export function PrescriptionCrop({
   }
   const content = (
     <SafeAreaView style={s.screen}>
-      <ScrollView contentContainerStyle={s.content}>
+      <ScrollView scrollEnabled={!dragging} contentContainerStyle={s.content}>
         <Text style={s.title}>{t('Select medicines only')}</Text>
         <Text style={s.text}>
           {t(
             'The starting box is a suggested area, not automatic detection. Drag its corners or adjust the edges below. Exclude every name, address, ID, barcode and patient detail.',
           )}
         </Text>
-        <View style={{ alignItems: 'center', padding: 12 }}>
-          <View style={{ width, height }}>
-            <Image
-              source={{ uri: source.uri }}
-              style={{ width, height }}
-              resizeMode="contain"
-            />
+        <View
+          onLayout={(event) =>
+            setAvailableWidth(event.nativeEvent.layout.width)
+          }
+          style={{ alignItems: 'center' }}
+        >
+          <View
+            style={{ width: width + gutter * 2, height: height + gutter * 2 }}
+          >
             <View
               pointerEvents="none"
-              style={[
-                s.mask,
-                { left: 0, top: 0, width, height: crop.top * height },
-              ]}
-            />
-            <View
-              pointerEvents="none"
-              style={[
-                s.mask,
-                {
-                  left: 0,
-                  top: crop.bottom * height,
-                  width,
-                  height: (1 - crop.bottom) * height,
-                },
-              ]}
-            />
-            <View
-              pointerEvents="none"
-              style={[
-                s.mask,
-                {
-                  left: 0,
-                  top: crop.top * height,
-                  width: crop.left * width,
-                  height: (crop.bottom - crop.top) * height,
-                },
-              ]}
-            />
-            <View
-              pointerEvents="none"
-              style={[
-                s.mask,
-                {
-                  left: crop.right * width,
-                  top: crop.top * height,
-                  width: (1 - crop.right) * width,
-                  height: (crop.bottom - crop.top) * height,
-                },
-              ]}
-            />
-            <View
-              pointerEvents="none"
-              style={[
-                s.selection,
-                {
-                  left: crop.left * width,
-                  top: crop.top * height,
-                  width: (crop.right - crop.left) * width,
-                  height: (crop.bottom - crop.top) * height,
-                },
-              ]}
-            />
-            {handle('start')}
-            {handle('end')}
+              style={{
+                position: 'absolute',
+                left: gutter,
+                top: gutter,
+                width,
+                height,
+              }}
+            >
+              <Image
+                source={{ uri: source.uri }}
+                style={{ width, height }}
+                resizeMode="contain"
+              />
+              <View
+                pointerEvents="none"
+                style={[
+                  s.mask,
+                  { left: 0, top: 0, width, height: crop.top * height },
+                ]}
+              />
+              <View
+                pointerEvents="none"
+                style={[
+                  s.mask,
+                  {
+                    left: 0,
+                    top: crop.bottom * height,
+                    width,
+                    height: (1 - crop.bottom) * height,
+                  },
+                ]}
+              />
+              <View
+                pointerEvents="none"
+                style={[
+                  s.mask,
+                  {
+                    left: 0,
+                    top: crop.top * height,
+                    width: crop.left * width,
+                    height: (crop.bottom - crop.top) * height,
+                  },
+                ]}
+              />
+              <View
+                pointerEvents="none"
+                style={[
+                  s.mask,
+                  {
+                    left: crop.right * width,
+                    top: crop.top * height,
+                    width: (1 - crop.right) * width,
+                    height: (crop.bottom - crop.top) * height,
+                  },
+                ]}
+              />
+              <View
+                pointerEvents="none"
+                style={[
+                  s.selection,
+                  {
+                    left: crop.left * width,
+                    top: crop.top * height,
+                    width: (crop.right - crop.left) * width,
+                    height: (crop.bottom - crop.top) * height,
+                  },
+                ]}
+              />
+            </View>
+            {corners.map((corner) => (
+              <CropHandle
+                key={corner}
+                crop={crop}
+                corner={corner}
+                width={width}
+                height={height}
+                busy={busy}
+                onChange={setCrop}
+                onDragging={setDragging}
+              />
+            ))}
           </View>
         </View>
         <Text style={s.text}>
@@ -272,8 +379,8 @@ const s = StyleSheet.create({
   selection: { position: 'absolute', borderWidth: 2, borderColor: '#19D8BC' },
   handle: {
     position: 'absolute',
-    width: 44,
-    height: 44,
+    width: handleSize,
+    height: handleSize,
     alignItems: 'center',
     justifyContent: 'center',
   },

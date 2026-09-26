@@ -812,6 +812,7 @@ export default function Home() {
                     <AddStock
                       key={medicine.id}
                       medicineId={medicine.id}
+                      medicine={medicine}
                       initialScan={boxScan}
                       busy={busy}
                       save={(body) =>

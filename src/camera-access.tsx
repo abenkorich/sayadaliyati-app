@@ -9,7 +9,13 @@ import {
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { AppText as Text, useLanguage } from './language';
-export function CameraAccess({ disabled = false }: { disabled?: boolean }) {
+export function CameraAccess({
+  disabled = false,
+  revision = 0,
+}: {
+  disabled?: boolean;
+  revision?: number;
+}) {
   const { t } = useLanguage();
   const [permission, setPermission] =
     useState<ImagePicker.CameraPermissionResponse | null>(null);
@@ -43,7 +49,7 @@ export function CameraAccess({ disabled = false }: { disabled?: boolean }) {
       mounted.current = false;
       subscription.remove();
     };
-  }, []);
+  }, [revision]);
   async function grant() {
     if (lock.current || disabled) return;
     lock.current = true;
@@ -72,16 +78,15 @@ export function CameraAccess({ disabled = false }: { disabled?: boolean }) {
         {t('Use the mobile app to take and crop photos.')}
       </Text>
     );
+  if (permission?.granted || (!permission && !error)) return null;
   return (
     <View style={s.card}>
       <Text style={s.title}>{t('Camera access')}</Text>
       <Text accessibilityLiveRegion="polite" style={s.text}>
         {t(
-          permission?.granted
-            ? 'Camera permission is granted. You can take a photo.'
-            : permission?.canAskAgain === false
-              ? 'Camera permission is blocked. Enable it in phone settings, or choose a photo from storage.'
-              : 'Allow camera access to take a photo. You can also choose an existing photo without granting camera access.',
+          permission?.canAskAgain === false
+            ? 'Camera permission is blocked. Enable it in phone settings, or choose a photo from storage.'
+            : 'Allow camera access to take a photo. You can also choose an existing photo without granting camera access.',
         )}
       </Text>
       <Pressable

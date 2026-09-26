@@ -5,7 +5,6 @@ import {
   ActivityIndicator,
   Image,
   Modal,
-  Linking,
   ScrollView,
   Platform,
   Pressable,
@@ -17,8 +16,15 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ScanSettings, useScanSettings } from './scan-settings';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import * as ImagePicker from 'expo-image-picker';
+import { File } from 'expo-file-system';
 import { useSession } from './session';
-import { scanPreview, scanUpload, type ScanPreview } from './scan-preview';
+import {
+  scanPreview,
+  scanUpload,
+  type ScanPreview,
+  type OriginalImage,
+} from './scan-preview';
+import { scanExtractionError } from './scan-errors';
 import { CameraAccess } from './camera-access';
 import { fields } from './prescription-model';
 export function PrescriptionScan({
@@ -35,13 +41,16 @@ export function PrescriptionScan({
   const { t } = useLanguage();
   const { client } = useSession();
   const scroll = useRef<ScrollView>(null);
+  const [originalImage, setOriginalImage] = useState<OriginalImage | null>(
+    null,
+  );
   const [cropSource, setCropSource] = useState<CropSource | null>(null);
   const { preferences } = useScanSettings();
   const consent = preferences?.processingConsent === true;
   const [open, setOpen] = useState(false);
   const [sourceTab, setSourceTab] = useState<'camera' | 'storage'>('camera');
   const [settings, setSettings] = useState(false);
-  const [cameraDenied, setCameraDenied] = useState(false);
+  const [permissionRevision, setPermissionRevision] = useState(0);
   const [image, setImage] = useState<{ uri: string; mimeType: string } | null>(
       null,
     ),
@@ -97,22 +106,12 @@ export function PrescriptionScan({
     lock.current = true;
     setBusy(true);
     setError('');
-    setCameraDenied(false);
     try {
       if (Platform.OS === 'web')
         throw new Error('Use the native app to crop prescription images.');
       if (camera) {
         const permission = await ImagePicker.requestCameraPermissionsAsync();
-        if (!permission.granted) {
-          setCameraDenied(true);
-          if (mounted.current)
-            setError(
-              t(
-                'Camera access is needed. Enable it in phone settings or choose an image instead.',
-              ),
-            );
-          return;
-        }
+        if (!permission.granted) return;
       }
       const options: ImagePicker.ImagePickerOptions = {
         mediaTypes: ['images'],
@@ -129,6 +128,14 @@ export function PrescriptionScan({
       if (!asset) return;
       if (!asset.uri.startsWith('file://') || !asset.width || !asset.height)
         throw new Error('Choose a local image that can be cropped.');
+      setOriginalImage({
+        uri: asset.uri,
+        width: asset.width,
+        height: asset.height,
+        mimeType:
+          asset.mimeType ??
+          (/\.png$/i.test(asset.uri) ? 'image/png' : 'image/jpeg'),
+      });
       setCropSource({
         uri: asset.uri,
         width: asset.width,
@@ -142,7 +149,10 @@ export function PrescriptionScan({
         setError(e instanceof Error ? e.message : t('Unable to open image.'));
     } finally {
       lock.current = false;
-      if (mounted.current) setBusy(false);
+      if (mounted.current) {
+        setBusy(false);
+        setPermissionRevision((value) => value + 1);
+      }
     }
   }
   async function extract() {
@@ -157,7 +167,7 @@ export function PrescriptionScan({
       const r = await client.request<{ data: unknown }>(
         mode === 'box' ? '/me/prescription-scan/box' : '/me/prescription-scan',
         'POST',
-        scanUpload(image, privacy, consent),
+        scanUpload(image, privacy, consent, new File(image.uri)),
       );
       if (mounted.current) {
         const next = scanPreview(r.data);
@@ -172,17 +182,13 @@ export function PrescriptionScan({
       }
     } catch (e) {
       if (mounted.current) {
-        const code = (e as { code?: string })?.code;
         if ((e as { status?: number })?.status === 401) report(e);
-        setError(
-          code === 'PRESCRIPTION_SCAN_NOT_CONFIGURED'
-            ? t('Your server has not configured OpenAI extraction yet.')
-            : code === 'RATE_LIMITED'
-              ? t('Scan limit reached. Wait before trying again.')
-              : t(
-                  'Extraction could not be completed. Try a clearer crop or enter details manually.',
-                ),
-        );
+        const failure = e as { status?: number; code?: string };
+        const detail =
+          typeof failure.status === 'number'
+            ? ` (HTTP ${failure.status}${failure.code ? ` · ${failure.code}` : ''})`
+            : '';
+        setError(t(scanExtractionError(e)) + detail);
       }
     } finally {
       lock.current = false;
@@ -204,13 +210,13 @@ export function PrescriptionScan({
     if (lock.current) return;
     setOpen(false);
     setImage(null);
+    setOriginalImage(null);
     setCropSource(null);
     setPreview(null);
     setPrivacy(false);
     setReviewed(false);
     setError('');
     setSettings(false);
-    setCameraDenied(false);
   }
   return (
     <View>
@@ -279,7 +285,6 @@ export function PrescriptionScan({
                             onPress={() => {
                               setSourceTab(tab);
                               setError('');
-                              setCameraDenied(false);
                             }}
                             style={[s.tab, sourceTab === tab && s.activeTab]}
                           >
@@ -318,7 +323,10 @@ export function PrescriptionScan({
                         </Text>
                       </View>
                       {sourceTab === 'camera' && (
-                        <CameraAccess disabled={busy || disabled} />
+                        <CameraAccess
+                          disabled={busy || disabled}
+                          revision={permissionRevision}
+                        />
                       )}
                       {sourceTab === 'storage' && (
                         <Text style={s.text}>
@@ -333,18 +341,6 @@ export function PrescriptionScan({
                           : t('Choose image'),
                         () => void choose(sourceTab === 'camera'),
                       )}
-                      {cameraDenied &&
-                        action(
-                          t('Open phone settings'),
-                          () =>
-                            void Linking.openSettings().catch(() =>
-                              setError(
-                                t(
-                                  'Open your phone settings to manage camera access.',
-                                ),
-                              ),
-                            ),
-                        )}
                     </>
                   )}
                   {checking ? (
@@ -459,10 +455,14 @@ export function PrescriptionScan({
                             {t('Medicine')} {i + 1}
                           </Text>
                           {fields
-                            .filter((f) =>
-                              mode === 'box'
-                                ? ['extractedName', 'strength'].includes(f.name)
-                                : f.name !== 'medicineId',
+                            .filter(
+                              (f) =>
+                                !!line[f.name] &&
+                                (mode === 'box'
+                                  ? ['extractedName', 'strength'].includes(
+                                      f.name,
+                                    )
+                                  : f.name !== 'medicineId'),
                             )
                             .map((f) => (
                               <Text key={f.name} style={s.text}>
@@ -502,7 +502,10 @@ export function PrescriptionScan({
                       {action(
                         t('Use suggestions in the form'),
                         () => {
-                          onApply(preview);
+                          onApply({
+                            ...preview,
+                            ...(originalImage ? { originalImage } : {}),
+                          });
                           close();
                         },
                         !reviewed,

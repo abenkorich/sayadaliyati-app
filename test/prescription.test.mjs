@@ -1,3 +1,4 @@
+/* global structuredClone */
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import {
@@ -8,6 +9,8 @@ import {
   reviewBody,
   confirmationBody,
   confirmationProblem,
+  overallReview,
+  ensureReviewUnchanged,
   uploadError,
   nextPage,
 } from '../.test-dist/prescription-model.js';
@@ -143,4 +146,52 @@ test('attachment policy rejects unsupported images and chooses the next page', (
   const rx = fixture();
   rx.documents = [{ id: 'x', pageNumber: 2, mimeType: 'image/png' }];
   assert.equal(nextPage(rx), 3);
+});
+
+test('overall approval explicitly reviews unknowns while preserving requirements and rejected lines', () => {
+  const rx = fixture();
+  rx.medications[0].fields.forEach((field) => (field.confirmed = false));
+  rx.medications.push({
+    ...rx.medications[0],
+    id: 'rejected',
+    confirmationStatus: 'REJECTED',
+    fields: [],
+  });
+  const batches = overallReview(rx);
+  assert.equal(batches.length, 1);
+  assert.ok(batches[0].fieldReviews.every((field) => field.confirmed));
+  assert.ok(batches[0].fieldReviews.some((field) => field.value === null));
+  assert.ok(rx.medications[0].fields.every((field) => !field.confirmed));
+  rx.medications[0].fields.find((field) => field.fieldName === 'dosage').value =
+    null;
+  assert.throws(() => overallReview(rx), /required/);
+});
+test('overall approval batches long prescriptions and rejects concurrent value changes', () => {
+  const before = fixture();
+  before.medications = Array.from({ length: 20 }, (_, index) => ({
+    ...fixture().medications[0],
+    id: `medicine-${index}`,
+    fields: fixture().medications[0].fields.map((field) => ({
+      ...field,
+      id: `${index}-${field.id}`,
+      value:
+        field.fieldName === 'medicineId' ? `catalog-${index}` : field.value,
+    })),
+  }));
+  const batches = overallReview(before);
+  assert.equal(batches.length, 20);
+  assert.ok(batches.every((batch) => batch.fieldReviews.length <= 100));
+  const after = structuredClone(before);
+  after.medications.forEach((m) =>
+    m.fields.forEach((f) => {
+      f.id += '-new';
+      f.confirmed = true;
+    }),
+  );
+  assert.doesNotThrow(() => ensureReviewUnchanged(before, after));
+  after.medications[0].fields.find((f) => f.fieldName === 'dosage').value = 99;
+  assert.throws(
+    () => ensureReviewUnchanged(before, after),
+    /changed while approving/,
+  );
 });

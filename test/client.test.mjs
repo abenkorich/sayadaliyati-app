@@ -154,3 +154,15 @@ test('public medicine suggestions work without a session or token refresh', asyn
   assert.equal(calls.length, 1);
   assert.match(calls[0], /medicines\/suggestions/);
 });
+
+test('HTML proxy upload errors retain HTTP status instead of becoming JSON parse errors', async () => {
+  const client = new ApiClient(base, vault('refresh'), async (url) => {
+    if (url.endsWith('/auth/refresh'))
+      return response({ accessToken: 'access', refreshToken: 'new' });
+    return new Response('<html>Request too large</html>', { status: 413 });
+  });
+  await assert.rejects(
+    client.request('/me/prescription-scan', 'POST', new FormData()),
+    { status: 413, code: 'REQUEST_FAILED' },
+  );
+});

@@ -1,18 +1,15 @@
+import { ImageViewer, type ViewedImage } from './image-viewer';
+import { originalUpload } from './original-image';
+import type { OriginalImage } from './scan-preview';
 import { AppText as Text, useLanguage } from './language';
 import { DateTimeField, DailyTimePicker } from './date-time-field';
 import { KeyboardTextInput as TextInput } from './keyboard';
 import { MedicineSearch } from './medicine-search';
 import { PrescriptionScan } from './prescription-scan';
 import React, { useCallback, useEffect, useState } from 'react';
-import {
-  Alert,
-  Linking,
-  Pressable,
-  StyleSheet,
-  Switch,
-  View,
-} from 'react-native';
+import { Alert, Pressable, StyleSheet, View } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import { File } from 'expo-file-system';
 import { useSession } from './session';
 import {
   blank,
@@ -20,8 +17,7 @@ import {
   inputValues,
   createBody,
   reviewBody,
-  confirmationBody,
-  confirmationProblem,
+  overallReview,
   nextPage,
   uploadError,
   type Inputs,
@@ -121,21 +117,95 @@ function MedicinePicker({
 function Editor({
   value,
   onChange,
-  checked,
-  onCheck,
   api,
   disabled,
+  onOriginal,
 }: {
   value: Inputs;
   onChange(value: Inputs): void;
-  checked?: Record<string, boolean>;
-  onCheck?(name: string, checked: boolean): void;
   api: Request;
   disabled: boolean;
+  onOriginal?(image: OriginalImage): void;
 }) {
   const { t } = useLanguage();
+  const [editing, setEditing] = useState<string | null>(null);
+  const [more, setMore] = useState(false);
+  const main = [
+    'extractedName',
+    'medicineId',
+    'strength',
+    'dosage',
+    'dosageUnit',
+    'scheduledTimes',
+    'startDate',
+    'endDate',
+  ];
   return (
     <View style={s.stack}>
+      {fields
+        .filter((f) => more || main.includes(f.name) || !!value[f.name])
+        .map((f) => (
+          <View key={f.name} style={s.field}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`${t('Edit')} ${t(f.label)}`}
+              disabled={disabled}
+              onPress={() => setEditing(editing === f.name ? null : f.name)}
+              style={[
+                s.row,
+                { minHeight: 48, justifyContent: 'space-between' },
+              ]}
+            >
+              <View style={{ flex: 1, gap: 3 }}>
+                <Text style={s.label}>{t(f.label)}</Text>
+                <Text style={s.muted}>
+                  {f.name === 'medicineId'
+                    ? value.medicineId
+                      ? t('Catalog medicine linked')
+                      : t('Not linked')
+                    : value[f.name] || t('Not recorded')}
+                </Text>
+              </View>
+              <Text style={{ color: '#087F7B' }}>
+                {t(editing === f.name ? 'Done' : 'Edit')}
+              </Text>
+            </Pressable>
+            {editing === f.name &&
+              (f.kind === 'medicine' ? (
+                <MedicinePicker
+                  value={value.medicineId}
+                  disabled={disabled}
+                  onChange={(id) => onChange({ ...value, medicineId: id })}
+                  api={api}
+                />
+              ) : f.kind === 'date' ? (
+                <DateTimeField
+                  label={t(f.label)}
+                  value={value[f.name]}
+                  disabled={disabled}
+                  onChange={(v) => onChange({ ...value, [f.name]: v })}
+                />
+              ) : f.kind === 'times' ? (
+                <DailyTimePicker
+                  value={value[f.name]}
+                  disabled={disabled}
+                  onChange={(v) => onChange({ ...value, [f.name]: v })}
+                />
+              ) : (
+                <Field
+                  label={t(f.label)}
+                  value={value[f.name]}
+                  disabled={disabled}
+                  onChange={(v) => onChange({ ...value, [f.name]: v })}
+                />
+              ))}
+          </View>
+        ))}
+      <Button
+        title={t(more ? 'Hide optional details' : 'Show optional details')}
+        disabled={disabled}
+        onPress={() => setMore(!more)}
+      />
       <PrescriptionScan
         mode="box"
         disabled={disabled}
@@ -149,58 +219,9 @@ function Editor({
               extractedName: line.extractedName,
               strength: line.strength,
             });
+          if (preview.originalImage) onOriginal?.(preview.originalImage);
         }}
       />
-      {fields.map((f) => (
-        <View key={f.name} style={s.field}>
-          {f.kind === 'medicine' ? (
-            <>
-              <Text style={s.label}>{t(f.label)}</Text>
-              <MedicinePicker
-                value={value.medicineId}
-                disabled={disabled}
-                onChange={(id) => onChange({ ...value, medicineId: id })}
-                api={api}
-              />
-            </>
-          ) : f.kind === 'date' ? (
-            <DateTimeField
-              label={t(f.label)}
-              value={value[f.name]}
-              disabled={disabled}
-              onChange={(v) => onChange({ ...value, [f.name]: v })}
-            />
-          ) : f.kind === 'times' ? (
-            <DailyTimePicker
-              value={value[f.name]}
-              disabled={disabled}
-              onChange={(v) => onChange({ ...value, [f.name]: v })}
-            />
-          ) : (
-            <Field
-              label={t(f.label)}
-              value={value[f.name]}
-              disabled={disabled}
-              onChange={(v) => onChange({ ...value, [f.name]: v })}
-            />
-          )}
-          {checked && (
-            <View style={s.row}>
-              <Text style={[s.muted, { flex: 1 }]}>
-                {t('I reviewed')} {t(f.label)}
-                {!value[f.name] ? t(' (unknown)') : ''}
-              </Text>
-              <Switch
-                accessibilityLabel={`${t('I reviewed')} ${t(f.label)}`}
-                value={!!checked[f.name]}
-                disabled={disabled}
-                onValueChange={(v) => onCheck?.(f.name, v)}
-                trackColor={{ true: '#087F7B' }}
-              />
-            </View>
-          )}
-        </View>
-      ))}
     </View>
   );
 }
@@ -212,6 +233,7 @@ function LineReview({
   save,
   reject,
   onDirty,
+  onOriginal,
 }: {
   line: Medication;
   editable: boolean;
@@ -220,87 +242,86 @@ function LineReview({
   save(body: unknown): void;
   reject(): void;
   onDirty(): void;
+  onOriginal(image: OriginalImage): void;
 }) {
   const { t } = useLanguage();
-  const [value, setValue] = useState(() => inputValues(line)),
-    [checked, setChecked] = useState<Record<string, boolean>>(() =>
-      Object.fromEntries(line.fields.map((f) => [f.fieldName, f.confirmed])),
-    ),
-    [error, setError] = useState('');
-  if (!editable)
-    return (
-      <View style={s.card}>
-        <Text style={s.heading}>
-          {line.medicine?.name ?? line.extractedName ?? t('Medicine')}
-        </Text>
-        <Text style={s.badge}>{t(line.confirmationStatus)}</Text>
-        {fields.map((f) => (
-          <View key={f.name}>
-            <Text style={s.label}>{t(f.label)}</Text>
-            <Text style={s.muted}>
-              {f.name === 'medicineId'
-                ? (line.medicine?.name ?? t('Unknown'))
-                : value[f.name] || t('Unknown')}
-            </Text>
-          </View>
-        ))}
-      </View>
-    );
+  const [value, setValue] = useState(() => inputValues(line));
+  const [editing, setEditing] = useState(false);
+  const [changed, setChanged] = useState(false);
+  const [error, setError] = useState('');
+  const visible = fields.filter(
+    (f) => f.name !== 'medicineId' && !!value[f.name],
+  );
   return (
     <View style={s.card}>
       <Text style={s.heading}>
-        {line.medicine?.name ?? line.extractedName ?? t('Medicine')}
+        {line.medicine?.name ?? value.extractedName ?? t('Medicine')}
       </Text>
-      <Text style={s.muted}>
-        {t(
-          'Review each value, including unknowns. Editing clears the field’s review check. Save each medicine’s review.',
-        )}
-      </Text>
-      <Editor
-        value={value}
-        onChange={(next) => {
-          onDirty();
-          setChecked((previous) => ({
-            ...previous,
-            ...Object.fromEntries(
-              fields
-                .filter((f) => value[f.name] !== next[f.name])
-                .map((f) => [f.name, false]),
-            ),
-          }));
-          setValue(next);
-        }}
-        checked={checked}
-        onCheck={(name, v) => {
-          onDirty();
-          setChecked({ ...checked, [name]: v });
-        }}
-        api={api}
-        disabled={busy}
-      />
+      <Text style={s.badge}>{t(line.confirmationStatus)}</Text>
+      {!editing ? (
+        <>
+          {visible.map((f) => (
+            <Text key={f.name} style={s.muted}>
+              {t(f.label)}: {value[f.name]}
+            </Text>
+          ))}
+          <Text style={s.muted}>
+            {t('Unlisted details are unknown. Review before approving.')}
+          </Text>
+          {editable && (
+            <Button
+              title={t('Edit medicine details')}
+              disabled={busy}
+              onPress={() => setEditing(true)}
+            />
+          )}
+        </>
+      ) : (
+        <>
+          <Editor
+            value={value}
+            onChange={(next) => {
+              onDirty();
+              setChanged(true);
+              setValue(next);
+            }}
+            api={api}
+            disabled={busy}
+            onOriginal={onOriginal}
+          />
+          <Button
+            title={t(changed ? 'Save reviewed changes' : 'Done')}
+            disabled={busy}
+            onPress={() => {
+              if (!changed) {
+                setEditing(false);
+                return;
+              }
+              try {
+                const body = reviewBody(
+                  line,
+                  value,
+                  Object.fromEntries(fields.map((f) => [f.name, true])),
+                );
+                setError('');
+                save(body);
+              } catch (e) {
+                setError((e as Error).message);
+              }
+            }}
+          />
+          <Button
+            title={t('Reject this medicine line')}
+            disabled={busy}
+            onPress={reject}
+          />
+        </>
+      )}
       {!!error && (
         <Text accessibilityRole="alert" style={s.error}>
           {error}
         </Text>
       )}
-      <Button
-        title={t('Save this medicine review')}
-        disabled={busy}
-        onPress={() => {
-          try {
-            const body = reviewBody(line, value, checked);
-            setError('');
-            save(body);
-          } catch (e) {
-            setError((e as Error).message);
-          }
-        }}
-      />
-      <Button
-        title={t('Reject this medicine line')}
-        disabled={busy}
-        onPress={reject}
-      />
     </View>
   );
 }
@@ -326,6 +347,23 @@ export function Prescriptions({
   const [lines, setLines] = useState<Inputs[]>([blank()]),
     [date, setDate] = useState(''),
     [until, setUntil] = useState('');
+  const [originals, setOriginals] = useState<OriginalImage[]>([]);
+  const [viewedImage, setViewedImage] = useState<ViewedImage | null>(null);
+  const [editingDates, setEditingDates] = useState(false);
+  function keepOriginal(image: OriginalImage) {
+    if (
+      originals.length >= 20 &&
+      !originals.some((item) => item.uri === image.uri)
+    ) {
+      r.setError(t('A prescription supports up to 20 original images.'));
+      return;
+    }
+    setOriginals((previous) =>
+      previous.some((item) => item.uri === image.uri)
+        ? previous
+        : [...previous, image],
+    );
+  }
   const [dirty, setDirty] = useState<Record<string, boolean>>({});
   const rx = r.detail;
   const hasEdits = !!rx?.medications.some(
@@ -355,6 +393,14 @@ export function Prescriptions({
     return () => onBackChange(null);
   }, [backToList, onBackChange]);
   const editable = rx?.status === 'DRAFT' && !r.blocked;
+  let approvalProblem = '';
+  if (editable && rx) {
+    try {
+      overallReview(rx);
+    } catch (e) {
+      approvalProblem = (e as Error).message;
+    }
+  }
   const confirm = (
     title: string,
     message: string,
@@ -394,11 +440,11 @@ export function Prescriptions({
         return;
       }
       const form = new FormData();
-      form.append('file', {
-        uri: file.uri,
-        type: mime,
-        name: mime === 'image/png' ? 'prescription.png' : 'prescription.jpg',
-      } as unknown as Blob);
+      form.append(
+        'file',
+        new File(file.uri),
+        mime === 'image/png' ? 'prescription.png' : 'prescription.jpg',
+      );
       form.append('pageNumber', String(nextPage(rx)));
       await r.upload(form);
     } catch {
@@ -437,6 +483,8 @@ export function Prescriptions({
             title={t('New prescription')}
             disabled={r.busy}
             onPress={() => {
+              setOriginals([]);
+              setEditingDates(false);
               setLines([blank()]);
               setDate('');
               setUntil('');
@@ -514,6 +562,7 @@ export function Prescriptions({
             disabled={r.busy || r.blocked}
             report={report}
             onApply={(preview) => {
+              if (preview.originalImage) keepOriginal(preview.originalImage);
               setLines(preview.medications);
               setDate(preview.prescriptionDate);
               setUntil(preview.validUntil);
@@ -524,18 +573,63 @@ export function Prescriptions({
               'Review or enter the prescription details below. Unknown values stay blank. Saving creates a draft, never a confirmed treatment.',
             )}
           </Text>
-          <DateTimeField
-            label={t('Prescription date (optional)')}
-            value={date}
-            onChange={setDate}
-            disabled={r.busy || r.blocked}
-          />
-          <DateTimeField
-            label={t('Valid until (optional)')}
-            value={until}
-            onChange={setUntil}
-            disabled={r.busy || r.blocked}
-          />
+          <View style={s.card}>
+            <Text style={s.heading}>{t('Prescription summary')}</Text>
+            <Text style={s.muted}>
+              {lines.length} {t('Medicines')} · {date || t('Date not recorded')}{' '}
+              · {until || t('No end date')}
+            </Text>
+            <Button
+              title={t(editingDates ? 'Done' : 'Edit dates')}
+              disabled={r.busy || r.blocked}
+              onPress={() => setEditingDates(!editingDates)}
+            />
+            {editingDates && (
+              <>
+                <DateTimeField
+                  label={t('Prescription date (optional)')}
+                  value={date}
+                  onChange={setDate}
+                  disabled={r.busy || r.blocked}
+                />
+                <DateTimeField
+                  label={t('Valid until (optional)')}
+                  value={until}
+                  onChange={setUntil}
+                  disabled={r.busy || r.blocked}
+                />
+              </>
+            )}
+          </View>
+          {originals.length > 0 && (
+            <View style={s.card}>
+              <Text style={s.heading}>{t('Original images')}</Text>
+              <Text style={s.muted}>
+                {t(
+                  'Original images will be attached privately when you save. Only the crop is sent to AI.',
+                )}
+              </Text>
+              {originals.map((image, i) => (
+                <View key={image.uri} style={s.row}>
+                  <Button
+                    title={t('Open page {number}', { number: i + 1 })}
+                    onPress={() =>
+                      setViewedImage({ ...image, title: t('Original images') })
+                    }
+                  />
+                  <Button
+                    title={t('Remove')}
+                    disabled={r.busy || r.blocked}
+                    onPress={() =>
+                      setOriginals(
+                        originals.filter((item) => item.uri !== image.uri),
+                      )
+                    }
+                  />
+                </View>
+              ))}
+            </View>
+          )}
           {lines.map((line, index) => (
             <View style={s.card} key={index}>
               <Text style={s.heading}>
@@ -543,6 +637,7 @@ export function Prescriptions({
               </Text>
               <Editor
                 value={line}
+                onOriginal={keepOriginal}
                 onChange={(v) =>
                   setLines(lines.map((old, i) => (i === index ? v : old)))
                 }
@@ -564,12 +659,12 @@ export function Prescriptions({
             onPress={() => setLines([...lines, blank()])}
           />
           <Button
-            title={t('Save draft')}
+            title={t('Review and save draft')}
             disabled={r.busy || r.blocked}
             onPress={() => {
               try {
                 const body = createBody(lines, date, until);
-                void r.create(body);
+                void r.create(body, originals);
               } catch (e) {
                 r.setError((e as Error).message);
               }
@@ -621,14 +716,15 @@ export function Prescriptions({
                 title={t('Open page {number}', { number: d.pageNumber })}
                 disabled={r.busy}
                 onPress={() =>
-                  void r.run(async () => {
-                    const result = await api<{ url: string }>(
-                      `/me/prescriptions/${rx.id}/documents/${d.id}/download`,
-                    );
-                    const url = new URL(result.data.url);
-                    if (!['https:', 'http:'].includes(url.protocol))
-                      throw new Error('Invalid document link.');
-                    await Linking.openURL(url.href);
+                  setViewedImage({
+                    title: t('Open page {number}', { number: d.pageNumber }),
+                    mimeType: d.mimeType,
+                    loadUrl: async () => {
+                      const result = await api<{ url: string }>(
+                        `/me/prescriptions/${rx.id}/documents/${d.id}/download`,
+                      );
+                      return result.data.url;
+                    },
                   })
                 }
               />
@@ -655,6 +751,13 @@ export function Prescriptions({
                   [line.fields.map((f) => f.id).join(':')]: true,
                 }))
               }
+              onOriginal={(image) => {
+                try {
+                  void r.upload(originalUpload(image, nextPage(rx)));
+                } catch (e) {
+                  r.setError((e as Error).message);
+                }
+              }}
               line={line}
               editable={!!editable && line.confirmationStatus !== 'REJECTED'}
               api={api}
@@ -673,12 +776,38 @@ export function Prescriptions({
           ))}
           {editable && (
             <View style={s.card}>
-              <Text style={s.heading}>
-                {t('Confirm reviewed prescription')}
-              </Text>
+              <Text style={s.heading}>{t('Overall summary')}</Text>
+              {rx.medications
+                .filter((line) => line.confirmationStatus !== 'REJECTED')
+                .map((line) => {
+                  const values = inputValues(line);
+                  return (
+                    <View key={line.id}>
+                      <Text style={s.label}>
+                        {line.medicine?.name ??
+                          line.extractedName ??
+                          t('Medicine')}
+                      </Text>
+                      <Text style={s.muted}>
+                        {[
+                          values.strength,
+                          [values.dosage, values.dosageUnit]
+                            .filter(Boolean)
+                            .join(' '),
+                          values.scheduledTimes,
+                          [values.startDate, values.endDate]
+                            .filter(Boolean)
+                            .join(' → '),
+                        ]
+                          .filter(Boolean)
+                          .join(' · ') || t('Not recorded')}
+                      </Text>
+                    </View>
+                  );
+                })}
               <Text style={s.muted}>
                 {t(
-                  'This confirms your entered information. It is not professional verification and does not create or activate a treatment.',
+                  'Approve all displayed medicine details, including unknown values. This does not start a treatment.',
                 )}
               </Text>
               {hasEdits && (
@@ -686,19 +815,25 @@ export function Prescriptions({
                   {t('Save your edited medicine reviews before confirming.')}
                 </Text>
               )}
-              {!!confirmationProblem(rx) && (
-                <Text style={s.muted}>{confirmationProblem(rx)}</Text>
+              {!!approvalProblem && (
+                <Text style={s.error}>{t(approvalProblem)}</Text>
               )}
               <Button
-                title={t('Confirm prescription')}
-                disabled={r.busy || hasEdits || !!confirmationProblem(rx)}
+                title={t('Approve all medicines')}
+                disabled={r.busy || hasEdits || !!approvalProblem}
                 onPress={() =>
-                  confirm(
-                    t('Confirm prescription?'),
+                  Alert.alert(
+                    t('Approve this prescription?'),
                     t(
-                      'The saved review will be finalized and cannot be edited. No treatment is started.',
+                      'The reviewed summary will be finalized. No treatment is started.',
                     ),
-                    confirmationBody(rx),
+                    [
+                      { text: t('Cancel'), style: 'cancel' },
+                      {
+                        text: t('Approve all medicines'),
+                        onPress: () => void r.approve(),
+                      },
+                    ],
                   )
                 }
               />
@@ -721,6 +856,9 @@ export function Prescriptions({
             />
           )}
         </>
+      )}
+      {viewedImage && (
+        <ImageViewer image={viewedImage} onClose={() => setViewedImage(null)} />
       )}
     </View>
   );

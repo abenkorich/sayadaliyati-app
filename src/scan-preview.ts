@@ -1,6 +1,13 @@
 import { units, stockError } from './stock';
 import { blank, fields, type Inputs } from './prescription-model';
+export type OriginalImage = {
+  uri: string;
+  mimeType: string;
+  width: number;
+  height: number;
+};
 export type ScanPreview = {
+  originalImage?: OriginalImage;
   packageInfo?: { quantity: string; unit: string; expiryDate: string };
   medications: Inputs[];
   prescriptionDate: string;
@@ -91,6 +98,7 @@ export function scanUpload(
   image: { uri: string; mimeType: string },
   privacyConfirmed: boolean,
   processingConsent: boolean,
+  file: Blob,
 ) {
   if (!privacyConfirmed)
     throw new Error(
@@ -106,11 +114,12 @@ export function scanUpload(
   )
     throw new Error('Choose and crop a local JPEG or PNG image.');
   const form = new FormData();
-  form.append('file', {
-    uri: image.uri,
-    type: image.mimeType,
-    name: 'medicines-crop.' + (image.mimeType === 'image/png' ? 'png' : 'jpg'),
-  } as unknown as Blob);
+  // Expo 57 fetch needs a Blob/File with readable bytes, not an RN URI descriptor.
+  form.append(
+    'file',
+    file,
+    'medicines-crop.' + (image.mimeType === 'image/png' ? 'png' : 'jpg'),
+  );
   form.append('externalProcessingConsent', 'true');
   form.append('medicinesOnlyCropConfirmed', 'true');
   return form;

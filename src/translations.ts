@@ -6,6 +6,228 @@ export const languageNames: Record<Language, string> = {
   ar: 'العربية',
 };
 export const messages: Record<string, Record<Language, string>> = {
+  Close: { en: 'Close', fr: 'Fermer', ar: 'إغلاق' },
+  Edit: { en: 'Edit', fr: 'Modifier', ar: 'تعديل' },
+  'Catalog medicine linked': {
+    en: 'Catalog medicine linked',
+    fr: 'Médicament du catalogue associé',
+    ar: 'تم ربط دواء من الدليل',
+  },
+  'Not linked': { en: 'Not linked', fr: 'Non associé', ar: 'غير مرتبط' },
+  'Unlisted details are unknown. Review before approving.': {
+    en: 'Unlisted details are unknown. Review before approving.',
+    fr: 'Les informations non affichées sont inconnues. Vérifiez avant d’approuver.',
+    ar: 'المعلومات غير المعروضة غير معروفة. راجعها قبل الموافقة.',
+  },
+  'Edit medicine details': {
+    en: 'Edit medicine details',
+    fr: 'Modifier les informations du médicament',
+    ar: 'تعديل معلومات الدواء',
+  },
+  'Save reviewed changes': {
+    en: 'Save reviewed changes',
+    fr: 'Enregistrer les modifications vérifiées',
+    ar: 'حفظ التعديلات المُراجَعة',
+  },
+  'Hide optional details': {
+    en: 'Hide optional details',
+    fr: 'Masquer les informations facultatives',
+    ar: 'إخفاء التفاصيل الاختيارية',
+  },
+  'Show optional details': {
+    en: 'Show optional details',
+    fr: 'Afficher les informations facultatives',
+    ar: 'عرض التفاصيل الاختيارية',
+  },
+  'Prescription summary': {
+    en: 'Prescription summary',
+    fr: 'Résumé de l’ordonnance',
+    ar: 'ملخص الوصفة',
+  },
+  'Date not recorded': {
+    en: 'Date not recorded',
+    fr: 'Date non renseignée',
+    ar: 'التاريخ غير مسجل',
+  },
+  'No end date': {
+    en: 'No end date',
+    fr: 'Pas de date de fin',
+    ar: 'لا يوجد تاريخ انتهاء',
+  },
+  'Edit dates': {
+    en: 'Edit dates',
+    fr: 'Modifier les dates',
+    ar: 'تعديل التواريخ',
+  },
+  'Original images will be attached privately when you save. Only the crop is sent to AI.':
+    {
+      en: 'Original images will be attached privately when you save. Only the crop is sent to AI.',
+      fr: 'Les images originales seront jointes de façon privée lors de l’enregistrement. Seule la zone recadrée est envoyée à l’IA.',
+      ar: 'ستُرفق الصور الأصلية بشكل خاص عند الحفظ. تُرسل الصورة المقصوصة فقط إلى الذكاء الاصطناعي.',
+    },
+  'Review and save draft': {
+    en: 'Review and save draft',
+    fr: 'Vérifier et enregistrer le brouillon',
+    ar: 'مراجعة وحفظ المسودة',
+  },
+  'Overall summary': {
+    en: 'Overall summary',
+    fr: 'Résumé général',
+    ar: 'الملخص العام',
+  },
+  'Approve all displayed medicine details, including unknown values. This does not start a treatment.':
+    {
+      en: 'Approve all displayed medicine details, including unknown values. This does not start a treatment.',
+      fr: 'Approuvez toutes les informations affichées, y compris les valeurs inconnues. Cela ne démarre pas de traitement.',
+      ar: 'وافق على جميع معلومات الأدوية المعروضة، بما فيها القيم غير المعروفة. هذا لا يبدأ علاجًا.',
+    },
+  'Approve all medicines': {
+    en: 'Approve all medicines',
+    fr: 'Approuver tous les médicaments',
+    ar: 'الموافقة على جميع الأدوية',
+  },
+  'Approve this prescription?': {
+    en: 'Approve this prescription?',
+    fr: 'Approuver cette ordonnance ?',
+    ar: 'الموافقة على هذه الوصفة؟',
+  },
+  'The reviewed summary will be finalized. No treatment is started.': {
+    en: 'The reviewed summary will be finalized. No treatment is started.',
+    fr: 'Le résumé vérifié sera finalisé. Aucun traitement ne sera démarré.',
+    ar: 'سيُعتمد الملخص المُراجَع نهائيًا. لن يبدأ أي علاج.',
+  },
+  'Medicine summary': {
+    en: 'Medicine summary',
+    fr: 'Résumé du médicament',
+    ar: 'ملخص الدواء',
+  },
+  'Approve and add medicine': {
+    en: 'Approve and add medicine',
+    fr: 'Approuver et ajouter le médicament',
+    ar: 'الموافقة وإضافة الدواء',
+  },
+  'Download image': {
+    en: 'Download image',
+    fr: 'Télécharger l’image',
+    ar: 'تنزيل الصورة',
+  },
+  'Image saved to the selected folder.': {
+    en: 'Image saved to the selected folder.',
+    fr: 'Image enregistrée dans le dossier choisi.',
+    ar: 'تم حفظ الصورة في المجلد المحدد.',
+  },
+  'Image was not saved. Choose a folder and try again.': {
+    en: 'Image was not saved. Choose a folder and try again.',
+    fr: 'L’image n’a pas été enregistrée. Choisissez un dossier et réessayez.',
+    ar: 'لم تُحفظ الصورة. اختر مجلدًا وحاول مجددًا.',
+  },
+  'Unable to open this image. Try again.': {
+    en: 'Unable to open this image. Try again.',
+    fr: 'Impossible d’ouvrir cette image. Réessayez.',
+    ar: 'تعذر فتح هذه الصورة. حاول مجددًا.',
+  },
+  'Draft saved with original images. Review the summary before approving.': {
+    en: 'Draft saved with original images. Review the summary before approving.',
+    fr: 'Brouillon enregistré avec les images originales. Vérifiez le résumé avant d’approuver.',
+    ar: 'تم حفظ المسودة مع الصور الأصلية. راجع الملخص قبل الموافقة.',
+  },
+  'Draft saved, but an original image could not be attached. Reload to check saved pages before attaching it again.':
+    {
+      en: 'Draft saved, but an original image could not be attached. Reload to check saved pages before attaching it again.',
+      fr: 'Brouillon enregistré, mais une image originale n’a pas pu être jointe. Rechargez pour vérifier les pages enregistrées avant de la joindre à nouveau.',
+      ar: 'تم حفظ المسودة، لكن تعذر إرفاق إحدى الصور الأصلية. أعد التحميل للتحقق من الصفحات المحفوظة قبل إرفاقها مجددًا.',
+    },
+  'Prescription approved. No treatment has been started.': {
+    en: 'Prescription approved. No treatment has been started.',
+    fr: 'Ordonnance approuvée. Aucun traitement n’a été démarré.',
+    ar: 'تمت الموافقة على الوصفة. لم يبدأ أي علاج.',
+  },
+  'The prescription changed while approving. Reload and review the latest summary.':
+    {
+      en: 'The prescription changed while approving. Reload and review the latest summary.',
+      fr: 'L’ordonnance a changé pendant l’approbation. Rechargez et vérifiez le dernier résumé.',
+      ar: 'تغيرت الوصفة أثناء الموافقة. أعد التحميل وراجع أحدث ملخص.',
+    },
+
+  'The image exceeds the upload limit. Choose a smaller photo or a smaller crop.':
+    {
+      en: 'The image exceeds the upload limit. Choose a smaller photo or a smaller crop.',
+      fr: 'L’image dépasse la limite d’envoi. Choisissez une photo ou une zone plus petite.',
+      ar: 'تتجاوز الصورة حد الرفع. اختر صورة أصغر أو قصّ مساحة أصغر.',
+    },
+  'The server rejected the image format. Choose another photo and crop it again.':
+    {
+      en: 'The server rejected the image format. Choose another photo and crop it again.',
+      fr: 'Le serveur a refusé le format de l’image. Choisissez une autre photo et recadrez-la.',
+      ar: 'رفض الخادم تنسيق الصورة. اختر صورة أخرى وقصّها مجددًا.',
+    },
+  'Your session has expired. Sign in again before scanning.': {
+    en: 'Your session has expired. Sign in again before scanning.',
+    fr: 'Votre session a expiré. Reconnectez-vous avant de scanner.',
+    ar: 'انتهت جلستك. سجّل الدخول مجددًا قبل المسح.',
+  },
+  'This account is not allowed to scan. Sign in with a patient account.': {
+    en: 'This account is not allowed to scan. Sign in with a patient account.',
+    fr: 'Ce compte ne peut pas scanner. Connectez-vous avec un compte patient.',
+    ar: 'هذا الحساب غير مخوّل للمسح. سجّل الدخول بحساب مريض.',
+  },
+  'The scan endpoint is unavailable. The API needs an update.': {
+    en: 'The scan endpoint is unavailable. The API needs an update.',
+    fr: 'Le service de scan est indisponible. L’API doit être mise à jour.',
+    ar: 'خدمة المسح غير متاحة. يجب تحديث واجهة API.',
+  },
+  'The AI service could not complete extraction. Try again later or enter details manually.':
+    {
+      en: 'The AI service could not complete extraction. Try again later or enter details manually.',
+      fr: 'Le service d’IA n’a pas pu terminer l’extraction. Réessayez plus tard ou saisissez les informations manuellement.',
+      ar: 'تعذر على خدمة الذكاء الاصطناعي إكمال الاستخراج. حاول لاحقًا أو أدخل المعلومات يدويًا.',
+    },
+  'The server rejected the scan upload before extraction. Try selecting the photo again.':
+    {
+      en: 'The server rejected the scan upload before extraction. Try selecting the photo again.',
+      fr: 'Le serveur a refusé l’envoi avant l’extraction. Essayez de sélectionner à nouveau la photo.',
+      ar: 'رفض الخادم رفع الصورة قبل الاستخراج. حاول اختيار الصورة مجددًا.',
+    },
+  'The scan server is unavailable or could not process the upload. Try again later.':
+    {
+      en: 'The scan server is unavailable or could not process the upload. Try again later.',
+      fr: 'Le serveur de scan est indisponible ou n’a pas pu traiter l’envoi. Réessayez plus tard.',
+      ar: 'خادم المسح غير متاح أو تعذرت معالجة الرفع. حاول لاحقًا.',
+    },
+  'The server returned an unreadable scan response. Please try again later.': {
+    en: 'The server returned an unreadable scan response. Please try again later.',
+    fr: 'Le serveur a renvoyé une réponse de scan illisible. Réessayez plus tard.',
+    ar: 'أعاد الخادم استجابة مسح غير قابلة للقراءة. حاول لاحقًا.',
+  },
+  'The scan request timed out. Check your connection before trying again.': {
+    en: 'The scan request timed out. Check your connection before trying again.',
+    fr: 'La demande de scan a expiré. Vérifiez votre connexion avant de réessayer.',
+    ar: 'انتهت مهلة طلب المسح. تحقق من اتصالك قبل المحاولة مجددًا.',
+  },
+  'The scan upload could not be completed. Check your connection and try again.':
+    {
+      en: 'The scan upload could not be completed. Check your connection and try again.',
+      fr: 'L’envoi du scan n’a pas abouti. Vérifiez votre connexion et réessayez.',
+      ar: 'تعذر إكمال رفع الصورة. تحقق من اتصالك وحاول مجددًا.',
+    },
+  'The scan could not be completed. Choose the photo again or enter details manually.':
+    {
+      en: 'The scan could not be completed. Choose the photo again or enter details manually.',
+      fr: 'Le scan n’a pas abouti. Choisissez à nouveau la photo ou saisissez les informations manuellement.',
+      ar: 'تعذر إكمال المسح. اختر الصورة مجددًا أو أدخل المعلومات يدويًا.',
+    },
+
+  'Top right crop handle': {
+    en: 'Top right crop handle',
+    fr: 'Poignée de recadrage en haut à droite',
+    ar: 'مقبض القص العلوي الأيمن',
+  },
+  'Bottom left crop handle': {
+    en: 'Bottom left crop handle',
+    fr: 'Poignée de recadrage en bas à gauche',
+    ar: 'مقبض القص السفلي الأيسر',
+  },
+
   'Scan settings are not available on this server yet. The API needs an update before account permissions can be saved.':
     {
       en: 'Scan settings are not available on this server yet. The API needs an update before account permissions can be saved.',
