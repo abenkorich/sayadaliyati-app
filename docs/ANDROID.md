@@ -13,3 +13,14 @@ layout, catalog search, treatment records, read state and logout on the device.
 Phone push is not implemented. It requires the user-owned Expo/Firebase projects,
 FCM credentials and a native development build; remote push is unavailable in Expo
 Go on Android. See [Expo's setup guide](https://docs.expo.dev/push-notifications/push-notifications-setup/).
+
+### Release build command
+
+The local Gradle release command previously kept as a package.json comment:
+
+```sh
+export JAVA_HOME=/opt/homebrew/opt/openjdk@17 ANDROID_HOME=$HOME/Library/Android/sdk && cd /Volumes/Data/Workshop/Projects/sayadaliyati-app/android && ./gradlew assembleRelease
+```
+
+`pnpm build:android` currently exports JavaScript/assets only; it does not generate
+an APK. `pnpm install:android` installs the already-built release APK.

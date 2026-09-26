@@ -37,7 +37,7 @@ Native build outputs, credentials and signing keys are ignored.
 
 ## Checks
 
-`pnpm check` runs format, lint, TypeScript and six session-client tests.
+`pnpm check` runs format, lint, TypeScript and session, registration and stock-validation tests.
 For an optional running-API smoke test, copy .env.test.example to .env.test and
 configure an existing dedicated patient account, then run `pnpm test:integration`.
 This test uses HTTP only. It creates its own session, rotates/revokes it and reads
@@ -52,9 +52,35 @@ changes; review compatibility and run the HTTP smoke test. Both repos install
 independently; there are no workspace links across repositories. Automatic type
 generation from OpenAPI is not installed yet.
 
-Current screens: registration/login, medicine search/detail, existing treatments,
-dose recording, reminder inbox and preferences. The UI is English. Mobile treatment
-creation, inventory/prescription screens and phone push remain future work. Push
-requires Expo/Firebase provisioning and native-device testing.
+Current screens: registration/login; a personalized home dashboard with live stock
+and active-treatment summaries; My Pharmacy with All / Low stock / Expired filters;
+medicine search/detail and add-to-pharmacy quantity/unit/expiry form; existing
+treatments and dose recording; reminder inbox and preferences. The bottom action
+bar provides Home, Pharmacy, Add, Treatments and More, with header shortcuts for
+reminders and settings. Dashboard counts represent stock entries, not distinct
+medicines. Stock creation does not change treatment schedules or record doses.
+
+The teal palette, rounded cards, icon navigation and quick-action sheet follow the
+original design assets. The central Add action opens available actions; camera
+scanning, AI assistance, doctors/community sharing, treatment
+creation, stock editing and phone push remain future work. The UI is English.
+Push requires Expo/Firebase provisioning and native-device testing.
 
 The original monorepo is preserved. No remote, commit or push was created automatically.
+
+## Welcome screen
+
+Each fresh app launch opens the public landing screen, adapted from the web
+landing page's English copy, teal styling, illustrative pharmacy preview, feature
+sections, getting-started steps and FAQ. Create-account and sign-in actions open
+the existing authentication form; restored sessions get a Continue action without
+signing in again. Returning from the background keeps the current screen.
+The preview is explicitly illustrative and never displays private account data.
+Landing copy is kept locally in src/landing-copy.ts so no sibling repo is required.
+
+## Prescriptions
+
+Both mobile and web now support manual drafts, catalog linking, image attachments,
+field review, confirmation and archive. Open **More → My Prescriptions** or the
+**Add** menu. See [Prescription management](docs/PRESCRIPTIONS.md) for supported
+regimens, attachment configuration and the required native rebuild.

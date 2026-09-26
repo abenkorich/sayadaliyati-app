@@ -8,5 +8,12 @@
     "rootDir": "src",
     "skipLibCheck": true
   },
-  "include": ["src/client.ts"]
+  "include": [
+    "src/client.ts",
+    "src/registration.ts",
+    "src/stock.ts",
+    "src/prescription-model.ts",
+    "src/crop.ts",
+    "src/scan-preview.ts"
+  ]
 }

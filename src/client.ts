@@ -62,15 +62,22 @@ export class ApiClient {
     token?: string | null,
   ) {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 15000);
+    const timer = setTimeout(
+      () => controller.abort(),
+      path.startsWith('/me/prescription-scan') ? 60000 : 15000,
+    );
     try {
       const response = await this.transport(this.base + path, {
         method,
         headers: {
-          ...(body !== undefined ? { 'Content-Type': 'application/json' } : {}),
+          ...(body !== undefined && !(body instanceof FormData)
+            ? { 'Content-Type': 'application/json' }
+            : {}),
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+        ...(body !== undefined
+          ? { body: body instanceof FormData ? body : JSON.stringify(body) }
+          : {}),
         signal: controller.signal,
       });
       const result = await response.json();

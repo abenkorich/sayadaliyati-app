@@ -1,9 +1,13 @@
+import type { ScanPreview } from '../src/scan-preview';
+import { PrescriptionScan } from '../src/prescription-scan';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
   AppState,
+  BackHandler,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   Pressable,
   RefreshControl,
@@ -17,8 +21,21 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { useSession } from '../src/session';
+import {
+  MedicineImage,
+  MedicineSearch,
+  CategoryFilter,
+} from '../src/medicine-search';
+import type { Request as CatalogRequest } from '../src/prescription-model';
 import { ClientError } from '../src/client';
+import { Prescriptions } from '../src/prescriptions';
+import { Landing } from '../src/landing';
+import { registrationError } from '../src/registration';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { PharmacyScreen, AddStock, Tile } from '../src/pharmacy';
 type Medicine = {
+  boxImageUrl?: string | null;
+  category?: { id: string; name: string; slug: string } | null;
   id: string;
   name: string;
   genericName: string | null;
@@ -152,10 +169,28 @@ function Field({
 }
 export default function Home() {
   const { client, ready, signedIn, setSignedIn } = useSession();
-  const [tab, setTab] = useState('Treatments'),
+  const [landing, setLanding] = useState(true);
+  const [tab, setTab] = useState('Home'),
     [error, setError] = useState(''),
     [busy, setBusy] = useState(false),
     [loading, setLoading] = useState(false);
+  const scrollRef = useRef<ScrollView>(null);
+  const prescriptionScrollTop = useCallback(
+    () => scrollRef.current?.scrollTo({ y: 0, animated: false }),
+    [],
+  );
+  const [showActions, setShowActions] = useState(false);
+  function navigate(name: string) {
+    setBoxScan(null);
+    scrollRef.current?.scrollTo({ y: 0, animated: false });
+    setTab(name);
+    setPage(1);
+    setPages(1);
+    setDetail(null);
+    setMedicine(null);
+    setError('');
+    setShowActions(false);
+  }
   const actionLock = useRef(false);
   const [preferencesLoaded, setPreferencesLoaded] = useState(false);
   const [register, setRegister] = useState(false),
@@ -163,6 +198,12 @@ export default function Home() {
     [password, setPassword] = useState(''),
     [firstName, setFirstName] = useState(''),
     [lastName, setLastName] = useState('');
+  const catalogApi: CatalogRequest = useCallback(
+    <T,>(path: string) => client.request<{ data: T }>(path),
+    [client],
+  );
+  const [category, setCategory] = useState('');
+  const [boxScan, setBoxScan] = useState<ScanPreview | null>(null);
   const [search, setSearch] = useState(''),
     [term, setTerm] = useState(''),
     [page, setPage] = useState(1),
@@ -209,7 +250,7 @@ export default function Home() {
     return () => listener.remove();
   }, []);
   useEffect(() => {
-    if (!signedIn) return;
+    if (!signedIn || landing) return;
     let active = true;
     setLoading(true);
     setError('');
@@ -217,7 +258,7 @@ export default function Home() {
     const load = async () => {
       if (tab === 'Medicines') {
         const r = await client.request<Result<Medicine[]>>(
-          `/medicines?page=${page}&limit=20${term ? `&q=${encodeURIComponent(term)}` : ''}`,
+          `/medicines?page=${page}&limit=20${term ? `&q=${encodeURIComponent(term)}` : ''}${category ? `&category=${encodeURIComponent(category)}` : ''}`,
         );
         if (active) {
           setMedicines(r.data);
@@ -273,7 +314,17 @@ export default function Home() {
     return () => {
       active = false;
     };
-  }, [signedIn, tab, term, page, revision, client, report]);
+  }, [signedIn, landing, tab, term, category, page, revision, client, report]);
+  useEffect(() => {
+    if (landing || signedIn) return;
+    const listener = BackHandler.addEventListener('hardwareBackPress', () => {
+      setLanding(true);
+      setError('');
+      setPassword('');
+      return true;
+    });
+    return () => listener.remove();
+  }, [landing, signedIn]);
   async function action(work: () => Promise<void>) {
     if (actionLock.current) return;
     actionLock.current = true;
@@ -292,6 +343,7 @@ export default function Home() {
     const r = await client.request<Result<CourseDetail>>(
       `/me/treatments/${encodeURIComponent(id)}`,
     );
+    scrollRef.current?.scrollTo({ y: 0, animated: false });
     setDetail(r.data);
     setMedicine(null);
   }
@@ -323,6 +375,22 @@ export default function Home() {
         <ActivityIndicator accessibilityLabel="Restoring session" />
       </SafeAreaView>
     );
+  if (landing)
+    return (
+      <Landing
+        signedIn={signedIn}
+        onStart={() => {
+          setRegister(true);
+          setLanding(false);
+          navigate('Home');
+        }}
+        onSignIn={() => {
+          setRegister(false);
+          setLanding(false);
+          navigate('Home');
+        }}
+      />
+    );
   return (
     <SafeAreaView style={styles.screen}>
       <StatusBar style="dark" />
@@ -331,40 +399,39 @@ export default function Home() {
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <View style={styles.header}>
-          <Text style={styles.brand}>Saydaliyati</Text>
-          <Text style={styles.muted}>All my medicines, in one place.</Text>
-        </View>
-        {signedIn && (
-          <View style={styles.tabs}>
-            {['Treatments', 'Medicines', 'Inbox', 'Settings'].map((name) => (
-              <Pressable
-                key={name}
-                accessibilityRole="tab"
-                accessibilityState={{ selected: tab === name }}
-                onPress={() => {
-                  setTab(name);
-                  setPage(1);
-                  setDetail(null);
-                  setMedicine(null);
-                }}
-                style={[
-                  styles.tab,
-                  tab === name && { backgroundColor: color.soft },
-                ]}
-              >
-                <Text
-                  style={{
-                    color: tab === name ? color.green : color.muted,
-                    fontWeight: '600',
-                  }}
-                >
-                  {name}
-                </Text>
-              </Pressable>
-            ))}
+          <View style={{ flex: 1, gap: 3 }}>
+            <Text style={styles.brand}>Saydaliyati</Text>
+            <Text style={[styles.muted, { fontSize: 12 }]}>
+              All my medicines, in one place.
+            </Text>
           </View>
-        )}
+          {signedIn && (
+            <>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Open reminders"
+                style={styles.headerAction}
+                onPress={() => navigate('Inbox')}
+              >
+                <Ionicons
+                  name="notifications-outline"
+                  size={24}
+                  color={color.green}
+                />
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Open settings"
+                style={styles.headerAction}
+                onPress={() => navigate('Settings')}
+              >
+                <Ionicons name="person-outline" size={23} color={color.green} />
+              </Pressable>
+            </>
+          )}
+        </View>
         <ScrollView
+          ref={scrollRef}
           contentContainerStyle={styles.content}
           keyboardShouldPersistTaps="handled"
           refreshControl={
@@ -387,6 +454,15 @@ export default function Home() {
           )}
           {!signedIn ? (
             <View style={styles.card}>
+              <Button
+                title="Back to introduction"
+                secondary
+                onPress={() => {
+                  setLanding(true);
+                  setError('');
+                  setPassword('');
+                }}
+              />
               <Text style={styles.title}>
                 {register ? 'Create your account' : 'Welcome back'}
               </Text>
@@ -429,6 +505,17 @@ export default function Home() {
                 disabled={busy || !identifier || !password}
                 onPress={() =>
                   void action(async () => {
+                    if (register) {
+                      const message = registrationError({
+                        firstName,
+                        lastName,
+                        password,
+                      });
+                      if (message) {
+                        setError(message);
+                        return;
+                      }
+                    }
                     const id = identifier.trim();
                     await client.signIn(
                       register
@@ -447,6 +534,7 @@ export default function Home() {
                       register,
                     );
                     setPassword('');
+                    navigate('Home');
                     setSignedIn(true);
                     reload();
                   })
@@ -545,6 +633,10 @@ export default function Home() {
                 </>
               ) : medicine ? (
                 <View style={styles.card}>
+                  <MedicineImage medicine={medicine} />
+                  <Text style={styles.muted}>
+                    {medicine.category?.name ?? 'Uncategorized'}
+                  </Text>
                   <Text style={styles.title}>{medicine.name}</Text>
                   <Text>
                     {[
@@ -561,16 +653,121 @@ export default function Home() {
                   <Text style={styles.muted}>
                     Source: {medicine.source ?? 'Not supplied'}
                   </Text>
+                  <AddStock
+                    key={medicine.id}
+                    medicineId={medicine.id}
+                    initialScan={boxScan}
+                    busy={busy}
+                    save={(body) =>
+                      void action(async () => {
+                        await client.request('/me/inventory', 'POST', body);
+                        setBoxScan(null);
+                        navigate('My Pharmacy');
+                        reload();
+                      })
+                    }
+                  />
                 </View>
               ) : (
                 <>
-                  <Text style={styles.title}>{tab}</Text>
+                  {tab !== 'Home' && <Text style={styles.title}>{tab}</Text>}
+                  {(tab === 'Home' || tab === 'My Pharmacy') && (
+                    <PharmacyScreen
+                      key={tab}
+                      home={tab === 'Home'}
+                      revision={revision}
+                      navigate={navigate}
+                      report={report}
+                      openTreatment={(id) =>
+                        void action(() => openTreatment(id))
+                      }
+                    />
+                  )}
+                  {tab === 'Prescriptions' && (
+                    <Prescriptions
+                      report={report}
+                      revision={revision}
+                      onViewChange={prescriptionScrollTop}
+                    />
+                  )}
+                  {tab === 'More' && (
+                    <>
+                      <Text style={styles.muted}>
+                        Everything you need, close at hand.
+                      </Text>
+                      <Tile
+                        title="My Prescriptions"
+                        subtitle="Create, attach and review prescriptions"
+                        icon="document-text-outline"
+                        onPress={() => navigate('Prescriptions')}
+                      />
+                      <Tile
+                        title="Medicine catalog"
+                        subtitle="Search medicines and add stock"
+                        icon="search-outline"
+                        onPress={() => navigate('Medicines')}
+                      />
+                      <Tile
+                        title="My reminders"
+                        subtitle="Review your in-app notifications"
+                        icon="notifications-outline"
+                        onPress={() => navigate('Inbox')}
+                      />
+                      <Tile
+                        title="Settings"
+                        subtitle="Reminder preferences and account"
+                        icon="settings-outline"
+                        onPress={() => navigate('Settings')}
+                      />
+                    </>
+                  )}
                   {tab === 'Medicines' && (
                     <>
-                      <Field
+                      <PrescriptionScan
+                        mode="box"
+                        disabled={busy}
+                        report={() => {}}
+                        onApply={(preview) => {
+                          setBoxScan(preview);
+                          const name =
+                            preview.medications[0]?.extractedName ?? '';
+                          setSearch(name);
+                          setTerm(name);
+                          setCategory('');
+                          setPage(1);
+                          reload();
+                        }}
+                      />
+                      <Text style={styles.muted}>
+                        After scanning, select the matching catalog medicine and
+                        check its strength before adding stock.
+                      </Text>
+                      <MedicineSearch
                         label="Search medicine names"
                         value={search}
-                        onChangeText={setSearch}
+                        onChange={setSearch}
+                        api={catalogApi}
+                        category={category}
+                        disabled={busy}
+                        onSelect={(m) =>
+                          void action(async () => {
+                            setMedicine(
+                              (
+                                await client.request<Result<Medicine>>(
+                                  `/medicines/${m.id}`,
+                                )
+                              ).data,
+                            );
+                          })
+                        }
+                      />
+                      <CategoryFilter
+                        api={catalogApi}
+                        value={category}
+                        onChange={(value) => {
+                          setCategory(value);
+                          setPage(1);
+                        }}
                       />
                       <Button
                         title="Search"
@@ -582,7 +779,7 @@ export default function Home() {
                         }}
                       />
                       <Text style={styles.muted}>
-                        Local demo entries are synthetic and labeled DEMO.
+                        Search by brand or active ingredient.
                       </Text>
                       {medicines.map((m) => (
                         <Pressable
@@ -602,6 +799,10 @@ export default function Home() {
                             })
                           }
                         >
+                          <MedicineImage medicine={m} />
+                          <Text style={styles.muted}>
+                            {m.category?.name ?? 'Uncategorized'}
+                          </Text>
                           <Text style={styles.heading}>{m.name}</Text>
                           <Text style={styles.muted}>
                             {[m.genericName, m.strength, m.dosageForm]
@@ -751,6 +952,7 @@ export default function Home() {
                               await client.logout();
                             } finally {
                               setSignedIn(false);
+                              setLanding(true);
                               setDetail(null);
                               setMedicine(null);
                               setCourses([]);
@@ -762,42 +964,208 @@ export default function Home() {
                       />
                     </>
                   )}
-                  {tab !== 'Settings' && pages > 1 && (
-                    <View style={styles.row}>
-                      <Button
-                        title="Previous"
-                        secondary
-                        disabled={page <= 1 || loading}
-                        onPress={() => setPage(page - 1)}
-                      />
-                      <Text>
-                        {page} / {pages}
-                      </Text>
-                      <Button
-                        title="Next"
-                        secondary
-                        disabled={page >= pages || loading}
-                        onPress={() => setPage(page + 1)}
-                      />
-                    </View>
-                  )}
+                  {['Medicines', 'Treatments', 'Inbox'].includes(tab) &&
+                    pages > 1 && (
+                      <View style={styles.row}>
+                        <Button
+                          title="Previous"
+                          secondary
+                          disabled={page <= 1 || loading}
+                          onPress={() => setPage(page - 1)}
+                        />
+                        <Text>
+                          {page} / {pages}
+                        </Text>
+                        <Button
+                          title="Next"
+                          secondary
+                          disabled={page >= pages || loading}
+                          onPress={() => setPage(page + 1)}
+                        />
+                      </View>
+                    )}
                 </>
               )}
             </>
           )}
         </ScrollView>
+        {signedIn && (
+          <View style={styles.bottomBar}>
+            {[
+              { name: 'Home', label: 'Home', icon: 'home-outline' },
+              {
+                name: 'My Pharmacy',
+                label: 'Pharmacy',
+                icon: 'medkit-outline',
+              },
+              { name: 'Add', label: 'Add', icon: 'add' },
+              {
+                name: 'Treatments',
+                label: 'Treatments',
+                icon: 'calendar-outline',
+              },
+              { name: 'More', label: 'More', icon: 'grid-outline' },
+            ].map((item) => (
+              <Pressable
+                key={item.name}
+                accessibilityRole={item.name === 'Add' ? 'button' : 'tab'}
+                accessibilityLabel={
+                  item.name === 'Add' ? 'Open quick actions' : item.name
+                }
+                accessibilityState={{ selected: tab === item.name }}
+                onPress={() =>
+                  item.name === 'Add'
+                    ? setShowActions(true)
+                    : navigate(item.name)
+                }
+                style={styles.navItem}
+              >
+                <View style={item.name === 'Add' ? styles.fab : undefined}>
+                  <Ionicons
+                    name={
+                      item.icon as React.ComponentProps<typeof Ionicons>['name']
+                    }
+                    size={item.name === 'Add' ? 30 : 23}
+                    color={
+                      item.name === 'Add'
+                        ? '#fff'
+                        : tab === item.name
+                          ? color.green
+                          : color.muted
+                    }
+                  />
+                </View>
+                <Text
+                  style={{
+                    fontSize: 10,
+                    fontWeight: tab === item.name ? '700' : '500',
+                    color: tab === item.name ? color.green : color.muted,
+                  }}
+                >
+                  {item.label}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+        )}
+        <Modal
+          visible={signedIn && showActions}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setShowActions(false)}
+        >
+          <View style={styles.overlay}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Dismiss quick actions"
+              style={{ flex: 1 }}
+              onPress={() => setShowActions(false)}
+            />
+            <SafeAreaView edges={['bottom']} style={styles.sheet}>
+              <View style={styles.row}>
+                <Text style={styles.title}>A little more care</Text>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Close quick actions"
+                  onPress={() => setShowActions(false)}
+                  style={styles.headerAction}
+                >
+                  <Ionicons name="close" size={24} />
+                </Pressable>
+              </View>
+              <Text style={styles.muted}>What would you like to do?</Text>
+              <Tile
+                title="My Prescriptions"
+                subtitle="Create a draft or review saved prescriptions"
+                icon="document-text-outline"
+                onPress={() => navigate('Prescriptions')}
+              />
+              <Tile
+                title="Add a medicine"
+                subtitle="Search the catalog and record your stock"
+                icon="add-circle-outline"
+                onPress={() => navigate('Medicines')}
+              />
+              <Tile
+                title="Review a dose"
+                subtitle="Open your treatment schedule"
+                icon="calendar-outline"
+                onPress={() => navigate('Treatments')}
+              />
+              <Tile
+                title="Check my pharmacy"
+                subtitle="See quantities, expiry dates and low stock"
+                icon="medkit-outline"
+                onPress={() => navigate('My Pharmacy')}
+              />
+            </SafeAreaView>
+          </View>
+        </Modal>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: color.bg },
-  header: { padding: 24, gap: 4 },
+  header: {
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    gap: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  headerAction: {
+    minWidth: 44,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: color.soft,
+    borderRadius: 22,
+  },
+  bottomBar: {
+    flexDirection: 'row',
+    backgroundColor: '#fff',
+    borderTopWidth: 1,
+    borderColor: color.border,
+    paddingHorizontal: 8,
+    paddingTop: 10,
+    paddingBottom: 8,
+  },
+  navItem: {
+    flex: 1,
+    minHeight: 54,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  fab: {
+    backgroundColor: color.green,
+    width: 52,
+    height: 52,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: -28,
+    borderWidth: 4,
+    borderColor: color.bg,
+  },
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15,35,32,0.35)',
+    justifyContent: 'flex-end',
+  },
+  sheet: {
+    backgroundColor: color.bg,
+    padding: 24,
+    gap: 16,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+  },
   brand: { color: color.green, fontSize: 26, fontWeight: '700' },
   muted: { color: color.muted, lineHeight: 21 },
   tabs: { flexDirection: 'row', paddingHorizontal: 12, gap: 2 },
   tab: { flex: 1, paddingVertical: 14, alignItems: 'center', borderRadius: 8 },
-  content: { padding: 24, gap: 16, paddingBottom: 48 },
+  content: { padding: 20, gap: 16, paddingBottom: 36 },
   title: { fontSize: 27, fontWeight: '600', color: color.ink },
   heading: { fontSize: 18, fontWeight: '600', color: color.ink },
   label: { color: color.ink, fontWeight: '500' },

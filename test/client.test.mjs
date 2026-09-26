@@ -1,4 +1,4 @@
-/* global Response */
+/* global Response, FormData, Blob */
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { ApiClient, apiUrl } from '../.test-dist/client.js';
@@ -114,4 +114,28 @@ test('late refresh response cannot resurrect a cleared session', async () => {
   complete(response({ accessToken: 'stale', refreshToken: 'stale' }));
   await assert.rejects(restoring);
   assert.equal(await store.get(), null);
+});
+
+test('multipart uploads keep their boundary and auth; ambiguous failures are not retried', async () => {
+  const form = new FormData();
+  form.append(
+    'file',
+    new Blob(['synthetic'], { type: 'image/png' }),
+    'page.png',
+  );
+  form.append('pageNumber', '1');
+  let uploads = 0;
+  const client = new ApiClient(base, vault('refresh'), async (url, opts) => {
+    if (url.endsWith('/auth/refresh'))
+      return response({ accessToken: 'access', refreshToken: 'next' });
+    uploads++;
+    assert.equal(opts.body, form);
+    assert.equal(opts.headers['Content-Type'], undefined);
+    assert.equal(opts.headers.Authorization, 'Bearer access');
+    throw new Error('lost response');
+  });
+  await assert.rejects(
+    client.request('/me/prescriptions/test/documents', 'POST', form),
+  );
+  assert.equal(uploads, 1);
 });
