@@ -875,7 +875,7 @@ export default function Home() {
                           onPress={() => navigate('Inbox')}
                         />
                         <Tile
-                          title={t('Settings')}
+                          title={t('Profile')}
                           subtitle={t('Reminder preferences and account')}
                           icon="settings-outline"
                           onPress={() => navigate('Settings')}

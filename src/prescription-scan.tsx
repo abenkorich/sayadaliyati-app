@@ -422,6 +422,17 @@ export function PrescriptionScan({
                       <Text style={s.title}>
                         {t('Review extracted suggestions')}
                       </Text>
+                      {image && (
+                        <Image
+                          source={{ uri: image.uri }}
+                          accessibilityLabel={t(
+                            'Cropped medicines image — review for patient information',
+                          )}
+                          resizeMode="contain"
+                          style={s.preview}
+                        />
+                      )}
+
                       <Text style={s.text}>
                         {t(
                           'Compare these with the crop. Unknown values stay blank. Catalog links, doses and schedules are never confirmed automatically.',
