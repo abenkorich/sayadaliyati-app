@@ -19,6 +19,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import * as ImagePicker from 'expo-image-picker';
 import { useSession } from './session';
 import { scanPreview, scanUpload, type ScanPreview } from './scan-preview';
+import { CameraAccess } from './camera-access';
 import { fields } from './prescription-model';
 export function PrescriptionScan({
   disabled,
@@ -316,12 +317,21 @@ export function PrescriptionScan({
                           )}
                         </Text>
                       </View>
+                      {sourceTab === 'camera' && (
+                        <CameraAccess disabled={busy || disabled} />
+                      )}
+                      {sourceTab === 'storage' && (
+                        <Text style={s.text}>
+                          {t(
+                            'Choose a photo using your phone’s picker. Camera permission is not needed.',
+                          )}
+                        </Text>
+                      )}
                       {action(
                         sourceTab === 'camera'
                           ? t('Open camera')
                           : t('Choose image'),
                         () => void choose(sourceTab === 'camera'),
-                        !enabled || checking,
                       )}
                       {cameraDenied &&
                         action(
@@ -346,7 +356,7 @@ export function PrescriptionScan({
                       <>
                         <Text style={s.text}>
                           {t(
-                            'Automatic extraction is currently unavailable. You can enter your medicines manually. No image has been sent.',
+                            'AI extraction is currently unavailable. You can still take or choose a photo and crop it, or enter medicines manually. No image has been sent.',
                           )}
                         </Text>
                         {action(t('Check again'), () => {

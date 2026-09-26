@@ -6,6 +6,99 @@ export const languageNames: Record<Language, string> = {
   ar: 'العربية',
 };
 export const messages: Record<string, Record<Language, string>> = {
+  'Scan settings are not available on this server yet. The API needs an update before account permissions can be saved.':
+    {
+      en: 'Scan settings are not available on this server yet. The API needs an update before account permissions can be saved.',
+      fr: 'Les paramètres de scan ne sont pas encore disponibles sur ce serveur. Une mise à jour de l’API est nécessaire pour enregistrer les autorisations du compte.',
+      ar: 'إعدادات المسح غير متاحة على هذا الخادم بعد. يجب تحديث واجهة API لحفظ أذونات الحساب.',
+    },
+  'Your session has expired. Sign in again to manage scan settings.': {
+    en: 'Your session has expired. Sign in again to manage scan settings.',
+    fr: 'Votre session a expiré. Reconnectez-vous pour gérer les paramètres du scan.',
+    ar: 'انتهت جلستك. سجّل الدخول مجددًا لإدارة إعدادات المسح.',
+  },
+  'Scan settings are available to patient accounts only.': {
+    en: 'Scan settings are available to patient accounts only.',
+    fr: 'Les paramètres du scan sont réservés aux comptes patients.',
+    ar: 'إعدادات المسح متاحة لحسابات المرضى فقط.',
+  },
+  'The scan settings service is temporarily unavailable. Please try again later.':
+    {
+      en: 'The scan settings service is temporarily unavailable. Please try again later.',
+      fr: 'Le service des paramètres du scan est temporairement indisponible. Réessayez plus tard.',
+      ar: 'خدمة إعدادات المسح غير متاحة مؤقتًا. حاول لاحقًا.',
+    },
+  'Unable to save scan settings. Check your connection and try again.': {
+    en: 'Unable to save scan settings. Check your connection and try again.',
+    fr: 'Impossible d’enregistrer les paramètres du scan. Vérifiez votre connexion et réessayez.',
+    ar: 'تعذر حفظ إعدادات المسح. تحقق من اتصالك وحاول مجددًا.',
+  },
+  'Unable to load scan settings. Check your connection and try again.': {
+    en: 'Unable to load scan settings. Check your connection and try again.',
+    fr: 'Impossible de charger les paramètres du scan. Vérifiez votre connexion et réessayez.',
+    ar: 'تعذر تحميل إعدادات المسح. تحقق من اتصالك وحاول مجددًا.',
+  },
+  'Camera access': {
+    en: 'Camera access',
+    fr: 'Accès à la caméra',
+    ar: 'إذن الكاميرا',
+  },
+  'Camera permission is granted. You can take a photo.': {
+    en: 'Camera permission is granted. You can take a photo.',
+    fr: 'L’accès à la caméra est autorisé. Vous pouvez prendre une photo.',
+    ar: 'تم منح إذن الكاميرا. يمكنك التقاط صورة.',
+  },
+  'Camera permission is blocked. Enable it in phone settings, or choose a photo from storage.':
+    {
+      en: 'Camera permission is blocked. Enable it in phone settings, or choose a photo from storage.',
+      fr: 'L’accès à la caméra est bloqué. Activez-le dans les paramètres du téléphone ou choisissez une photo enregistrée.',
+      ar: 'إذن الكاميرا محظور. فعّله في إعدادات الهاتف أو اختر صورة من التخزين.',
+    },
+  'Allow camera access to take a photo. You can also choose an existing photo without granting camera access.':
+    {
+      en: 'Allow camera access to take a photo. You can also choose an existing photo without granting camera access.',
+      fr: 'Autorisez la caméra pour prendre une photo. Vous pouvez aussi choisir une photo existante sans autoriser la caméra.',
+      ar: 'اسمح بالوصول إلى الكاميرا لالتقاط صورة. يمكنك أيضًا اختيار صورة موجودة دون منح إذن الكاميرا.',
+    },
+  'Grant camera access': {
+    en: 'Grant camera access',
+    fr: 'Autoriser la caméra',
+    ar: 'منح إذن الكاميرا',
+  },
+  'Checking camera access…': {
+    en: 'Checking camera access…',
+    fr: 'Vérification de l’accès à la caméra…',
+    ar: 'جارٍ التحقق من إذن الكاميرا…',
+  },
+  'Unable to check camera permission. Try granting access again.': {
+    en: 'Unable to check camera permission. Try granting access again.',
+    fr: 'Impossible de vérifier l’autorisation de la caméra. Essayez de l’accorder à nouveau.',
+    ar: 'تعذر التحقق من إذن الكاميرا. حاول منح الإذن مجددًا.',
+  },
+  'Unable to change camera access. Open your phone settings to grant permission.':
+    {
+      en: 'Unable to change camera access. Open your phone settings to grant permission.',
+      fr: 'Impossible de modifier l’accès à la caméra. Accordez l’autorisation dans les paramètres du téléphone.',
+      ar: 'تعذر تغيير إذن الكاميرا. افتح إعدادات هاتفك لمنح الإذن.',
+    },
+  'Use the mobile app to take and crop photos.': {
+    en: 'Use the mobile app to take and crop photos.',
+    fr: 'Utilisez l’application mobile pour prendre et recadrer des photos.',
+    ar: 'استخدم تطبيق الهاتف لالتقاط الصور وقصّها.',
+  },
+  'Choose a photo using your phone’s picker. Camera permission is not needed.':
+    {
+      en: 'Choose a photo using your phone’s picker. Camera permission is not needed.',
+      fr: 'Choisissez une photo avec le sélecteur du téléphone. L’autorisation de la caméra n’est pas nécessaire.',
+      ar: 'اختر صورة باستخدام منتقي الصور في هاتفك. لا يلزم إذن الكاميرا.',
+    },
+  'AI extraction is currently unavailable. You can still take or choose a photo and crop it, or enter medicines manually. No image has been sent.':
+    {
+      en: 'AI extraction is currently unavailable. You can still take or choose a photo and crop it, or enter medicines manually. No image has been sent.',
+      fr: 'L’extraction par IA est indisponible. Vous pouvez prendre ou choisir une photo et la recadrer, ou saisir les médicaments manuellement. Aucune image n’a été envoyée.',
+      ar: 'استخراج المعلومات بالذكاء الاصطناعي غير متاح حاليًا. يمكنك التقاط صورة أو اختيارها وقصّها، أو إدخال الأدوية يدويًا. لم تُرسل أي صورة.',
+    },
+
   Profile: { en: 'Profile', fr: 'Profil', ar: 'الملف الشخصي' },
   'Use camera': {
     en: 'Use camera',

@@ -8,13 +8,14 @@ import React, {
 } from 'react';
 import {
   ActivityIndicator,
-  Linking,
   Pressable,
   StyleSheet,
   Switch,
   View,
 } from 'react-native';
 import { AppText as Text, useLanguage } from './language';
+import { CameraAccess } from './camera-access';
+import { scanSettingsError } from './scan-errors';
 import { useSession } from './session';
 type Preferences = { configured: boolean; processingConsent: boolean };
 const Context = createContext<{
@@ -49,9 +50,8 @@ export function ScanSettingsProvider({
       .then((r) => {
         if (generation.current === epoch) setPreferences(r.data);
       })
-      .catch(() => {
-        if (generation.current === epoch)
-          setError('Unable to load scan settings. Please try again.');
+      .catch((error: unknown) => {
+        if (generation.current === epoch) setError(scanSettingsError(error));
       })
       .finally(() => {
         if (generation.current === epoch) setLoading(false);
@@ -115,8 +115,8 @@ export function ScanSettings({ onDone }: { onDone?: () => void }) {
       await save(consent);
       setSaved(true);
       onDone?.();
-    } catch {
-      setSaveError('Unable to save scan settings. Please try again.');
+    } catch (error) {
+      setSaveError(scanSettingsError(error, true));
     } finally {
       lock.current = false;
       setBusy(false);
@@ -195,19 +195,7 @@ export function ScanSettings({ onDone }: { onDone?: () => void }) {
           {t(saveError)}
         </Text>
       )}
-      <Pressable
-        accessibilityRole="button"
-        onPress={() =>
-          void Linking.openSettings().catch(() =>
-            setSaveError('Open your phone settings to manage camera access.'),
-          )
-        }
-        style={s.secondary}
-      >
-        <Text style={s.text}>
-          {t('Manage camera access in phone settings')}
-        </Text>
-      </Pressable>
+      <CameraAccess disabled={busy} />
     </View>
   );
 }

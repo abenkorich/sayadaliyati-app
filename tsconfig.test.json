@@ -10,6 +10,7 @@
   },
   "include": [
     "src/client.ts",
+    "src/scan-errors.ts",
     "src/registration.ts",
     "src/stock.ts",
     "src/prescription-model.ts",
